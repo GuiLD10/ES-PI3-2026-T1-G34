@@ -12,6 +12,7 @@ Descrição do Projeto
 É um aplicativo mobile desenvolvido como parte do Projeto Integrador III do curso de Engenharia de Software da Puc-Campinas.
 O projeto tem como objetivo simular um ambiente de investimento em startups. Para isso será utilizado tokenização de ativos baseados em blockchain. 
 Cada startup possui tokrns que representam participações simuladas, o que permite os usuários realizarem operações de compra e venda dentro de um ambiente educacional. 
+
 O projeto explora conceitos de:
 - Blockchain
 - Tokenização de ativos
@@ -32,14 +33,11 @@ Instruções para execuçção do sistema (Ambiente de testes)
 1. Clonar o repositório
 git clone https://github.com/GuiLD10/ES-PI3-2026-T1-G34.git
 
-2. Acessar a pasta do projeto
-cd mescla-invest
-
-3. Instalar dependências
+2. Instalar dependências
 Certifique-se de ter o Flutter instalado na máquina. Para isso execute:
 flutter pub get
 
-4. Executar a aplicação
+3. Executar a aplicação
 Para iniciar o sistema em modo de desenvolvimento:
 flutter run
 
