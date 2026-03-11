@@ -11,7 +11,7 @@ MesclaInvest
 Descrição do Projeto 
 É um aplicativo mobile desenvolvido como parte do Projeto Integrador III do curso de Engenharia de Software da Puc-Campinas.
 O projeto tem como objetivo simular um ambiente de investimento em startups. Para isso será utilizado tokenização de ativos baseados em blockchain. 
-Cada startup possui tokrns que representam participações simuladas, o que permite os usuários realizarem operações de compra e venda dentro de um ambiente educacional. 
+Cada startup possui tokens que representam participações simuladas, o que permite os usuários realizarem operações de compra e venda dentro de um ambiente educacional. 
 
 O projeto explora conceitos de:
 - Blockchain
