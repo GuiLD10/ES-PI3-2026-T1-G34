@@ -41,3 +41,6 @@ flutter pub get
 Para iniciar o sistema em modo de desenvolvimento:
 flutter run
 
+Link Wireframe: https://whimsical.com/bruna-s8/wireframe-mesclainvest-D9Wwwm8dKGrSkBwpFQ9yGN
+
+
