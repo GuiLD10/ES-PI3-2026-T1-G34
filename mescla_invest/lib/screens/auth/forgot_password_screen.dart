@@ -1,5 +1,5 @@
-// Autor: Seu Nome Completo
-// RA: 000000
+// Autor: Artur Henrique Pagno
+// RA: 21013037
 // Descrição: Tela de Recuperação de Senha do MesclaInvest
 
 import 'package:flutter/material.dart';

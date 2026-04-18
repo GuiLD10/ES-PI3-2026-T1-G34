@@ -1,5 +1,5 @@
-// Autor: Seu Nome Completo
-// RA: 000000
+// Autor: Artur Henrique Pagno
+// RA: 21013037
 // Descrição: Tela de Catálogo de Startups do MesclaInvest
 
 import 'package:flutter/material.dart';
