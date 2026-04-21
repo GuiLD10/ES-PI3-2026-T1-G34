@@ -26,7 +26,7 @@ function validarEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// Validação de CPF com algoritmo dos dígitos verificadores (Receita Federal)
+// Validação de CPF com algoritmo dos dígitos verificadores
 function validarCpf(cpf) {
   const digits = cpf.replace(/\D/g, '');
 
