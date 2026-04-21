@@ -1,10 +1,12 @@
 // Autor: Artur Henrique Pagno
 // RA: 21013037
+// Alterações feitas por Guilherme Lange Dallora - RA: 23012353
 // Descrição: Tela de Cadastro do MesclaInvest
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -24,6 +26,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _aceitouTermos = true;
   bool _obscureSenha = true;
   bool _obscureConfirmar = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -36,9 +39,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _cadastrar() {
-    // TODO: integrar com AuthService
-    Navigator.pushReplacementNamed(context, '/catalog');
+  Future<void> _cadastrar() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+
+    final resultado = await AuthService.cadastrar(
+      nome: _nomeController.text,
+      email: _emailController.text,
+      cpf: _cpfController.text,
+      telefone: _telefoneController.text,
+      senha: _senhaController.text,
+      confirmarSenha: _confirmarSenhaController.text,
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (resultado['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            resultado['message'] ?? 'Cadastro realizado com sucesso!',
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      Navigator.pushReplacementNamed(context, '/catalog');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? 'Erro ao realizar cadastro.'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -125,7 +161,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       obscure: _obscureSenha,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureSenha ? Icons.visibility_off : Icons.visibility,
+                          _obscureSenha
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: AppColors.textHint,
                           size: 20,
                         ),
@@ -141,12 +179,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       obscure: _obscureConfirmar,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureConfirmar ? Icons.visibility_off : Icons.visibility,
+                          _obscureConfirmar
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: AppColors.textHint,
                           size: 20,
                         ),
-                        onPressed: () =>
-                            setState(() => _obscureConfirmar = !_obscureConfirmar),
+                        onPressed: () => setState(
+                          () => _obscureConfirmar = !_obscureConfirmar,
+                        ),
                       ),
                     ),
 
@@ -179,25 +220,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         width: 160,
                         height: 44,
                         child: ElevatedButton(
-                          onPressed: _aceitouTermos ? _cadastrar : null,
+                          onPressed: (_aceitouTermos && !_isLoading)
+                              ? _cadastrar
+                              : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
-                            disabledBackgroundColor: AppColors.primary.withOpacity(
-                              0.5,
-                            ),
+                            disabledBackgroundColor: AppColors.primary
+                                .withOpacity(0.5),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
-                            'Cadastrar',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Cadastrar',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                         ),
                       ),
                     ),
