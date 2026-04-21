@@ -43,3 +43,27 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Chave privada do Firebase Admin SDK (credenciais de serviço privilegiadas)
+serviceAccountKey.json
+
+# Variáveis de ambiente do servidor Node.js (API keys, segredos)
+server/.env
+.env
+
+# Node.js
+
+# Dependências do servidor (são instaladas com "npm install")
+server/node_modules/
+node_modules/
+
+# Logs do npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Flutter (build artifacts)
+
+# Arquivos gerados pelo build — não precisam de versionamento
+.flutter-plugins
+flutter_export_environment.sh

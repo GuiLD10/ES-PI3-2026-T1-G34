@@ -1,9 +1,11 @@
 // Autor: Artur Henrique Pagno
 // RA: 21013037
+// Alterações feitas por Guilherme Lange Dallora - RA: 23012353
 // Descrição: Tela de Login do MesclaInvest
 
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,13 +13,14 @@ class LoginScreen extends StatefulWidget {
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
- 
+
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
   bool _continuarConectado = true;
   bool _obscureSenha = true;
- 
+  bool _isLoading = false;
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -25,11 +28,38 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _entrar() {
-    // TODO: integrar com AuthService
-    Navigator.pushReplacementNamed(context, '/catalog');
+  Future<void> _entrar() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+
+    final resultado = await AuthService.login(
+      email: _emailController.text,
+      senha: _senhaController.text,
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (resultado['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? 'Login realizado com sucesso!'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      Navigator.pushReplacementNamed(context, '/catalog');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? 'E-mail ou senha incorretos'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
- 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,8 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Switch(
                       value: _continuarConectado,
-                      onChanged: (v) =>
-                          setState(() => _continuarConectado = v),
+                      onChanged: (v) => setState(() => _continuarConectado = v),
                       activeThumbColor: AppColors.primary,
                     ),
                     const SizedBox(width: 4),
@@ -85,8 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 GestureDetector(
-                  onTap: () =>
-                      Navigator.pushNamed(context, '/forgot-password'),
+                  onTap: () => Navigator.pushNamed(context, '/forgot-password'),
                   child: Text(
                     'Esqueci minha senha',
                     style: TextStyle(
@@ -100,6 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 _buildPrimaryButton(
                   label: 'Entrar',
                   onTap: _entrar,
+                  isLoading: _isLoading,
                 ),
                 const SizedBox(height: 24),
                 GestureDetector(
@@ -131,15 +160,15 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
- 
+
   Widget _buildLogo() {
-  return Image.asset(
-    'assets/images/logo.png',
-    width: 350,
-    fit: BoxFit.contain,
-  );
-}
- 
+    return Image.asset(
+      'assets/images/logo.png',
+      width: 350,
+      fit: BoxFit.contain,
+    );
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
@@ -158,8 +187,10 @@ class _LoginScreenState extends State<LoginScreen> {
         filled: true,
         fillColor: Colors.white,
         suffixIcon: suffixIcon,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
@@ -175,28 +206,40 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
- 
+
   Widget _buildPrimaryButton({
     required String label,
     required VoidCallback onTap,
+    bool isLoading = false,
   }) {
     return SizedBox(
       width: 160,
       height: 44,
       child: ElevatedButton(
-        onPressed: onTap,
+        onPressed: isLoading ? null : onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          disabledBackgroundColor: AppColors.primary.withOpacity(0.7),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
       ),
     );
   }

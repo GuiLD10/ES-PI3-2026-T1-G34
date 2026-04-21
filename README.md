@@ -30,17 +30,93 @@ Tecnologias Utilizadas
 
 Instruções para execuçção do sistema (Ambiente de testes)
 - Passos para executar o sistema em ambiente de testes:
-1. Clonar o repositório
+### 1. Clonar o repositório
 git clone https://github.com/GuiLD10/ES-PI3-2026-T1-G34.git
+cd ES-PI3-2026-T1-G34
 
-2. Instalar dependências
-Certifique-se de ter o Flutter instalado na máquina. Para isso execute:
+### 2. Configure os arquivos sensíveis
+
+O projeto precisa de dois arquivos que **não estão no repositório** por segurança. Você deve criá-los manualmente.
+
+#### `mescla_invest/serviceAccountKey.json`
+Salve o arquivo 'serviceAccountKey.json' na pasta 'mescla_invest'.
+
+#### `mescla_invest/server/.env`
+Crie o arquivo `mescla_invest/server/.env` com o conteúdo do .env.
+
+### 3. Instale as dependências do servidor Node.js
+
+```bash
+cd mescla_invest/server
+npm install
+```
+
+---
+
+### 4. Instale as dependências do Flutter
+
+```bash
+cd mescla_invest
 flutter pub get
+```
 
-3. Executar a aplicação
-Para iniciar o sistema em modo de desenvolvimento:
+---
+
+### 5. Configure a URL base do servidor no Flutter
+
+Abra o arquivo `mescla_invest/lib/core/services/auth_service.dart` e ajuste a constante `_baseUrl` conforme o ambiente:
+
+```dart
+// Para rodar no emulador Android (aponta para o localhost da máquina host)
+static const String _baseUrl = 'http://10.0.2.2:3000';
+
+// Para rodar no Windows (app desktop) ou Chrome (web)
+static const String _baseUrl = 'http://localhost:3000';
+
+// Para rodar em dispositivo físico (use o IP da sua máquina na rede local)
+static const String _baseUrl = 'http://192.168.X.X:3000';
+```
+
+---
+
+### 6. Inicie o servidor Node.js
+
+Abra um terminal e execute:
+
+```bash
+cd mescla_invest/server
+node index.js
+```
+
+Você verá a mensagem:
+```
+Servidor MesclaInvest rodando em http://localhost:3000
+```
+
+> **Mantenha este terminal aberto** enquanto usa o app. Sempre que editar o `index.js`, pare o servidor com `Ctrl+C` e reinicie com `node index.js`.
+
+---
+
+### 7. Rode o aplicativo Flutter
+
+Abra **outro terminal** e execute:
+
+```bash
+cd mescla_invest
 flutter run
+```
 
-Link Wireframe: https://whimsical.com/bruna-s8/wireframe-mesclainvest-D9Wwwm8dKGrSkBwpFQ9yGN
+Se houver mais de um dispositivo disponível, o Flutter listará as opções. Escolha o desejado.
 
+Para forçar um dispositivo específico:
+```bash
+flutter run -d chrome        # Navegador Chrome (web)
+flutter run -d windows       # App desktop Windows
+flutter run -d <device-id>   # Emulador ou dispositivo Android/iOS
+```
 
+## Links úteis
+
+- 🔗 [Wireframe (Whimsical)](https://whimsical.com/bruna-s8/wireframe-mesclainvest-D9Wwwm8dKGrSkBwpFQ9yGN)
+- 🔗 [Documentação Flutter](https://docs.flutter.dev/)
+- 🔗 [Console Firebase](https://console.firebase.google.com/)

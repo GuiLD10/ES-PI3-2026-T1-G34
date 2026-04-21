@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/auth_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -15,25 +16,47 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
-  final _cpfController = TextEditingController();
+  // final _cpfController = TextEditingController(); // CPF desativado temporariamente
+
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _cpfController.dispose();
+    // _cpfController.dispose(); // CPF desativado temporariamente
     super.dispose();
   }
 
-  void _recuperar() {
-    // TODO: integrar com AuthService
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Instruções enviadas para o e-mail cadastrado.'),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
+  Future<void> _recuperar() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+
+    final resultado = await AuthService.recuperarSenha(
+      email: _emailController.text.trim(),
     );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (resultado['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? 'Instruções enviadas para o e-mail cadastrado.'),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultado['message'] ?? 'Erro ao enviar e-mail. Tente novamente.'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
   }
 
   @override
@@ -85,19 +108,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       keyboardType: TextInputType.emailAddress,
                     ),
 
-                    const SizedBox(height: 10),
-
-                    // Campo CPF com formatação
-                    _buildTextField(
-                      controller: _cpfController,
-                      hint: 'CPF',
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(11),
-                        _CpfInputFormatter(),
-                      ],
-                    ),
+                    // Campo CPF desativado temporariamente
+                    // const SizedBox(height: 10),
+                    // _buildTextField(
+                    //   controller: _cpfController,
+                    //   hint: 'CPF',
+                    //   keyboardType: TextInputType.number,
+                    //   inputFormatters: [
+                    //     FilteringTextInputFormatter.digitsOnly,
+                    //     LengthLimitingTextInputFormatter(11),
+                    //     _CpfInputFormatter(),
+                    //   ],
+                    // ),
 
                     const SizedBox(height: 32),
 
@@ -107,22 +129,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         width: 160,
                         height: 44,
                         child: ElevatedButton(
-                          onPressed: _recuperar,
+                          onPressed: _isLoading ? null : _recuperar,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
+                            disabledBackgroundColor: AppColors.primary.withOpacity(0.7),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
-                            'Recuperar',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Recuperar',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                         ),
                       ),
                     ),
@@ -188,22 +220,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 }
 
-// Formatador de CPF: 000.000.000-00
-class _CpfInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final buffer = StringBuffer();
-    for (int i = 0; i < digits.length && i < 11; i++) {
-      if (i == 3 || i == 6) buffer.write('.');
-      if (i == 9) buffer.write('-');
-      buffer.write(digits[i]);
-    }
-    final text = buffer.toString();
-    return newValue.copyWith(
-      text: text,
-      selection: TextSelection.collapsed(offset: text.length),
-    );
-  }
-}
+// Formatador de CPF: 000.000.000-00 — desativado temporariamente
+// class _CpfInputFormatter extends TextInputFormatter {
+//   @override
+//   TextEditingValue formatEditUpdate(
+//       TextEditingValue oldValue, TextEditingValue newValue) {
+//     final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+//     final buffer = StringBuffer();
+//     for (int i = 0; i < digits.length && i < 11; i++) {
+//       if (i == 3 || i == 6) buffer.write('.');
+//       if (i == 9) buffer.write('-');
+//       buffer.write(digits[i]);
+//     }
+//     final text = buffer.toString();
+//     return newValue.copyWith(
+//       text: text,
+//       selection: TextSelection.collapsed(offset: text.length),
+//     );
+//   }
+// }
