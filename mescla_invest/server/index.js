@@ -26,9 +26,28 @@ function validarEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// Validação de CPF com algoritmo dos dígitos verificadores (Receita Federal)
 function validarCpf(cpf) {
   const digits = cpf.replace(/\D/g, '');
-  return digits.length === 11;
+
+  // Deve ter exatamente 11 dígitos e não pode ser uma sequência repetida (ex: 111.111.111-11)
+  if (digits.length !== 11 || /^(\d)\1{10}$/.test(digits)) return false;
+
+  // Validação do primeiro dígito verificador
+  let soma = 0;
+  for (let i = 0; i < 9; i++) soma += parseInt(digits[i]) * (10 - i);
+  let resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(digits[9])) return false;
+
+  // Validação do segundo dígito verificador
+  soma = 0;
+  for (let i = 0; i < 10; i++) soma += parseInt(digits[i]) * (11 - i);
+  resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(digits[10])) return false;
+
+  return true;
 }
 
 function validarTelefone(telefone) {
@@ -167,6 +186,60 @@ async function handleLogin(req, res) {
   }
 }
 
+// Rota: Recuperação de Senha
+async function handleForgotPassword(req, res) {
+  let body;
+  try {
+    body = await lerBody(req);
+  } catch {
+    return enviarJSON(res, 400, { success: false, message: 'Requisição inválida.' });
+  }
+
+  const { email } = body;
+
+  if (!email || !validarEmail(email)) {
+    return enviarJSON(res, 400, { success: false, message: 'E-mail inválido.' });
+  }
+
+  // Verifica se o e-mail existe no Firebase Authentication
+  try {
+    await auth.getUserByEmail(email.trim());
+  } catch (error) {
+    if (error.code === 'auth/user-not-found') {
+      return enviarJSON(res, 404, { success: false, message: 'E-mail não encontrado no sistema.' });
+    }
+    console.error('Erro ao buscar usuário:', error);
+    return enviarJSON(res, 500, { success: false, message: 'Erro interno. Tente novamente.' });
+  }
+
+  // Envia o e-mail de recuperação via Firebase Auth REST API
+  try {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${FIREBASE_WEB_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestType: 'PASSWORD_RESET', email: email.trim() }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+      console.error('Erro ao enviar e-mail de recuperação:', data.error);
+      return enviarJSON(res, 500, { success: false, message: 'Erro ao enviar e-mail. Tente novamente.' });
+    }
+
+    return enviarJSON(res, 200, {
+      success: true,
+      message: 'Instruções enviadas para o e-mail cadastrado.',
+    });
+  } catch (error) {
+    console.error('Erro ao enviar e-mail de recuperação:', error);
+    return enviarJSON(res, 500, { success: false, message: 'Erro interno. Tente novamente.' });
+  }
+}
+
 // Servidor HTTP
 const server = http.createServer(async (req, res) => {
   // Suporte a CORS preflight
@@ -188,6 +261,10 @@ const server = http.createServer(async (req, res) => {
 
   if (method === 'POST' && url === '/auth/login') {
     return handleLogin(req, res);
+  }
+
+  if (method === 'POST' && url === '/auth/forgot-password') {
+    return handleForgotPassword(req, res);
   }
 
   // Rota não encontrada

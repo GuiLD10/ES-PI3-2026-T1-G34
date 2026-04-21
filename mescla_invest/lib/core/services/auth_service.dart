@@ -82,4 +82,32 @@ class AuthService {
       };
     }
   }
+
+  /// Envia e-mail de recuperação de senha.
+  /// O servidor verifica se o e-mail existe no Firebase antes de enviar.
+  /// Retorna um mapa com:
+  ///   - `success` (bool)
+  ///   - `message` (String) — mensagem de sucesso ou erro
+  static Future<Map<String, dynamic>> recuperarSenha({
+    required String email,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/auth/forgot-password'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data;
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Erro de conexão. Verifique se o servidor está rodando.',
+      };
+    }
+  }
 }
+
