@@ -33,9 +33,6 @@ Instruções para execuçção do sistema (Ambiente de testes)
 ### 1. Clonar o repositório
 git clone https://github.com/GuiLD10/ES-PI3-2026-T1-G34.git
 cd ES-PI3-2026-T1-G34
-```
-
----
 
 ### 2. Configure os arquivos sensíveis
 
