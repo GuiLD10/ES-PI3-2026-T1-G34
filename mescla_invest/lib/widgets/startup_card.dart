@@ -19,7 +19,8 @@ class StartupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFDDE4F0),
@@ -28,39 +29,64 @@ class StartupCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Nome da startup
-          Text(
-            startup.nome,
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  startup.nome,
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _buildEstagio(),
+            ],
           ),
-          const SizedBox(height: 4),
-
-          // Descrição
+          if (startup.setor.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              startup.setor,
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
           Text(
-            'Descrição: ${startup.descricao}',
+            startup.descricao,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: AppColors.textPrimary,
               fontSize: 13,
+              height: 1.25,
             ),
           ),
-          const SizedBox(height: 4),
-
-          // Estágio
-          Text(
-            'Estágio: ${startup.estagio}',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 13,
-            ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildIndicador(
+                  label: 'Capital',
+                  value: _formatarMoeda(startup.capitalAportado),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildIndicador(
+                  label: 'Tokens',
+                  value: _formatarNumero(startup.tokensEmitidos),
+                ),
+              ),
+            ],
           ),
-
-          const SizedBox(height: 10),
-
-          // Botão Ver Detalhes
+          const SizedBox(height: 12),
           SizedBox(
             height: 36,
             child: ElevatedButton(
@@ -72,11 +98,10 @@ class StartupCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 elevation: 0,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
               ),
               child: const Text(
-                'Ver Detalhes',
+                'Ver detalhes',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
             ),
@@ -84,5 +109,71 @@ class StartupCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildEstagio() {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 110),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        startup.estagio,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: AppColors.primary,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIndicador({required String label, required String value}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: AppColors.textHint,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatarMoeda(int valor) {
+    return 'R\$ ${_formatarNumero(valor)}';
+  }
+
+  String _formatarNumero(int valor) {
+    final texto = valor.toString();
+    final buffer = StringBuffer();
+
+    for (int i = 0; i < texto.length; i++) {
+      final posicaoRestante = texto.length - i;
+      buffer.write(texto[i]);
+
+      if (posicaoRestante > 1 && posicaoRestante % 3 == 1) {
+        buffer.write('.');
+      }
+    }
+
+    return buffer.toString();
   }
 }
