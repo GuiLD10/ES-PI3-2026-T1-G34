@@ -1,9 +1,11 @@
 // Autor: Artur Henrique Pagno
 // RA: 21013037
-// Descrição: Tela de Catálogo de Startups do MesclaInvest
+// Descricao: Tela de Catalogo de Startups do MesclaInvest
 
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_routes.dart';
+import '../../core/services/startup_service.dart';
 import '../../models/startup_model.dart';
 import '../../widgets/startup_card.dart';
 
@@ -17,17 +19,23 @@ class CatalogScreen extends StatefulWidget {
 class _CatalogScreenState extends State<CatalogScreen> {
   final _buscaController = TextEditingController();
 
-  // Lista vazia — será preenchida com dados do Firebase na integração
-  final List<StartupModel> _todasStartups = [];
+  List<StartupModel> _todasStartups = [];
+  bool _isLoading = true;
+  String? _erro;
 
-  // Filtros de estágio
   final Map<String, bool> _filtros = {
     'Nova': false,
-    'Em operação': false,
-    'Em expansão': false,
+    'Em operacao': false,
+    'Em expansao': false,
   };
 
   String _busca = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarStartups();
+  }
 
   @override
   void dispose() {
@@ -35,18 +43,72 @@ class _CatalogScreenState extends State<CatalogScreen> {
     super.dispose();
   }
 
-  // Retorna startups filtradas por busca e estágio
+  Future<void> _carregarStartups() async {
+    setState(() {
+      _isLoading = true;
+      _erro = null;
+    });
+
+    try {
+      final startups = await StartupService.listarStartups();
+
+      if (!mounted) return;
+      setState(() {
+        _todasStartups = startups;
+        _isLoading = false;
+      });
+    } on StartupServiceException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _erro = e.message;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _erro = 'Erro ao carregar startups.';
+        _isLoading = false;
+      });
+    }
+  }
+
   List<StartupModel> get _startupsFiltradas {
     final filtrosAtivos =
         _filtros.entries.where((e) => e.value).map((e) => e.key).toList();
+    final buscaNormalizada = _normalizarTexto(_busca);
 
-    return _todasStartups.where((s) {
+    return _todasStartups.where((startup) {
       final buscaOk =
-          _busca.isEmpty || s.nome.toLowerCase().contains(_busca.toLowerCase());
+          buscaNormalizada.isEmpty ||
+          _normalizarTexto(startup.nome).contains(buscaNormalizada) ||
+          _normalizarTexto(startup.descricao).contains(buscaNormalizada) ||
+          _normalizarTexto(startup.setor).contains(buscaNormalizada);
       final estagioOk =
-          filtrosAtivos.isEmpty || filtrosAtivos.contains(s.estagio);
+          filtrosAtivos.isEmpty ||
+          filtrosAtivos
+              .map(_normalizarTexto)
+              .contains(_normalizarTexto(startup.estagio));
+
       return buscaOk && estagioOk;
     }).toList();
+  }
+
+  String _normalizarTexto(String texto) {
+    return texto
+        .trim()
+        .toLowerCase()
+        .replaceAll('ç', 'c')
+        .replaceAll('ã', 'a')
+        .replaceAll('á', 'a')
+        .replaceAll('â', 'a')
+        .replaceAll('à', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('ê', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ô', 'o')
+        .replaceAll('õ', 'o')
+        .replaceAll('ú', 'u');
   }
 
   @override
@@ -58,176 +120,260 @@ class _CatalogScreenState extends State<CatalogScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 24),
-
-            // Header: logo + ícone de perfil na mesma linha
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Image.asset(
-                    'assets/images/logo.png',
-                    width: 100,
-                    fit: BoxFit.contain,
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/profile'),
-                    child: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: Colors.white,
-                      child: Icon(
-                        Icons.person,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
+            _buildHeader(),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Saudação
-                    // TODO: substituir [usuário] pelo nome real do usuário logado
-                    Text(
-                      'Bem-vindo, [usuário]',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Barra de busca
-                    TextField(
-                      controller: _buscaController,
-                      onChanged: (v) => setState(() => _busca = v),
-                      style: TextStyle(
-                          color: AppColors.textPrimary, fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: 'Buscar Startup',
-                        hintStyle: TextStyle(
-                            color: AppColors.textHint, fontSize: 14),
-                        filled: true,
-                        fillColor: Colors.white,
-                        suffixIcon: Icon(Icons.search,
-                            color: AppColors.primary, size: 20),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                              color: AppColors.primary, width: 1.5),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Filtros por estágio
-                    Text(
-                      'Filtro por estágio:',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: _filtros.keys.map((estagio) {
-                        return Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: Checkbox(
-                                value: _filtros[estagio],
-                                onChanged: (v) => setState(
-                                    () => _filtros[estagio] = v ?? false),
-                                activeColor: AppColors.primary,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              estagio,
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                          ],
-                        );
-                      }).toList(),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Label lista
-                    Text(
-                      'Startups',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Lista de startups — vazia até integração com Firebase
-                    if (_startupsFiltradas.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 32),
-                        child: Center(
-                          child: Text(
-                            'Nenhuma startup disponível.',
-                            style: TextStyle(
-                              color: AppColors.textHint,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      ..._startupsFiltradas.map((startup) {
-                        return StartupCard(
-                          startup: startup,
-                          onVerDetalhes: () {
-                            // TODO: passar o id da startup para a tela de detalhe
-                            Navigator.pushNamed(context, '/startup-detail');
-                          },
-                        );
-                      }),
-
-                    const SizedBox(height: 24),
-                  ],
+              child: RefreshIndicator(
+                onRefresh: _carregarStartups,
+                color: AppColors.primary,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSaudacao(),
+                      const SizedBox(height: 12),
+                      _buildBusca(),
+                      const SizedBox(height: 12),
+                      _buildFiltros(),
+                      const SizedBox(height: 12),
+                      _buildTituloLista(),
+                      const SizedBox(height: 8),
+                      _buildConteudoLista(),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Image.asset(
+            'assets/images/logo.png',
+            width: 100,
+            fit: BoxFit.contain,
+          ),
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: Colors.white,
+            child: Icon(
+              Icons.person,
+              color: AppColors.primary,
+              size: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSaudacao() {
+    return Text(
+      'Bem-vindo, usuario',
+      style: TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+
+  Widget _buildBusca() {
+    return TextField(
+      controller: _buscaController,
+      onChanged: (v) => setState(() => _busca = v),
+      style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: 'Buscar startup',
+        hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
+        filled: true,
+        fillColor: Colors.white,
+        suffixIcon: Icon(Icons.search, color: AppColors.primary, size: 20),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFiltros() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Filtro por estagio:',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 12,
+          runSpacing: 6,
+          children: _filtros.keys.map((estagio) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: Checkbox(
+                    value: _filtros[estagio],
+                    onChanged: (v) =>
+                        setState(() => _filtros[estagio] = v ?? false),
+                    activeColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  estagio,
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTituloLista() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          'Startups',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (!_isLoading && _erro == null)
+          Text(
+            '${_startupsFiltradas.length} encontradas',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 12,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildConteudoLista() {
+    if (_isLoading) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 32),
+        child: Center(
+          child: CircularProgressIndicator(
+            color: AppColors.primary,
+            strokeWidth: 2.5,
+          ),
+        ),
+      );
+    }
+
+    if (_erro != null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 32),
+        child: Center(
+          child: Column(
+            children: [
+              Text(
+                _erro!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 38,
+                child: ElevatedButton(
+                  onPressed: _carregarStartups,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text('Tentar novamente'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_startupsFiltradas.isEmpty) {
+      final mensagem = _todasStartups.isEmpty
+          ? 'Nenhuma startup disponivel.'
+          : 'Nenhuma startup encontrada para os filtros selecionados.';
+
+      return Padding(
+        padding: const EdgeInsets.only(top: 32),
+        child: Center(
+          child: Text(
+            mensagem,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textHint,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: _startupsFiltradas.map((startup) {
+        return StartupCard(
+          startup: startup,
+          onVerDetalhes: () {
+            Navigator.pushNamed(
+              context,
+              AppRoutes.startupDetail,
+              arguments: startup.id,
+            );
+          },
+        );
+      }).toList(),
     );
   }
 }

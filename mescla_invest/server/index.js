@@ -75,12 +75,49 @@ function lerBody(req) {
 function enviarJSON(res, statusCode, data) {
   const json = JSON.stringify(data);
   res.writeHead(statusCode, {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   });
   res.end(json);
+}
+
+function converterFirestoreValor(valor) {
+  if (valor === null || valor === undefined) return valor;
+  if (typeof valor.toDate === 'function') return valor.toDate().toISOString();
+  if (Array.isArray(valor)) return valor.map(converterFirestoreValor);
+
+  if (typeof valor === 'object') {
+    const objeto = {};
+    Object.entries(valor).forEach(([chave, item]) => {
+      objeto[chave] = converterFirestoreValor(item);
+    });
+    return objeto;
+  }
+
+  return valor;
+}
+
+function montarStartup(doc) {
+  const dados = converterFirestoreValor(doc.data());
+
+  return {
+    id: doc.id,
+    nome: dados.nome || '',
+    descricao: dados.descricao || '',
+    setor: dados.setor || '',
+    estagio: dados.estagio || '',
+    status: dados.status || '',
+    capital_aportado: Number(dados.capital_aportado) || 0,
+    tokens_emitidos: Number(dados.tokens_emitidos) || 0,
+    video_demo: dados.video_demo || '',
+    socios: Array.isArray(dados.socios) ? dados.socios : [],
+    mentores_conselho: Array.isArray(dados.mentores_conselho) ? dados.mentores_conselho : [],
+    perguntas_respostas: Array.isArray(dados.perguntas_respostas) ? dados.perguntas_respostas : [],
+    criado_em: dados.criado_em || null,
+    atualizado_em: dados.atualizado_em || null,
+  };
 }
 
 // Rota: Cadastro
@@ -240,6 +277,70 @@ async function handleForgotPassword(req, res) {
   }
 }
 
+async function handleListStartups(req, res) {
+  try {
+    const snapshot = await db
+      .collection('startups')
+      .where('status', '==', 'ativa')
+      .get();
+
+    const startups = snapshot.docs
+      .map(montarStartup)
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+    return enviarJSON(res, 200, {
+      success: true,
+      data: startups,
+    });
+  } catch (error) {
+    console.error('Erro ao listar startups:', error);
+    return enviarJSON(res, 500, {
+      success: false,
+      message: 'Erro interno ao buscar startups. Tente novamente.',
+    });
+  }
+}
+
+async function handleGetStartupById(req, res, startupId) {
+  if (!startupId) {
+    return enviarJSON(res, 400, {
+      success: false,
+      message: 'ID da startup e obrigatorio.',
+    });
+  }
+
+  try {
+    const doc = await db.collection('startups').doc(startupId).get();
+
+    if (!doc.exists) {
+      return enviarJSON(res, 404, {
+        success: false,
+        message: 'Startup nao encontrada.',
+      });
+    }
+
+    const startup = montarStartup(doc);
+
+    if (startup.status !== 'ativa') {
+      return enviarJSON(res, 404, {
+        success: false,
+        message: 'Startup nao encontrada.',
+      });
+    }
+
+    return enviarJSON(res, 200, {
+      success: true,
+      data: startup,
+    });
+  } catch (error) {
+    console.error('Erro ao buscar startup:', error);
+    return enviarJSON(res, 500, {
+      success: false,
+      message: 'Erro interno ao buscar startup. Tente novamente.',
+    });
+  }
+}
+
 // Servidor HTTP
 const server = http.createServer(async (req, res) => {
   // Suporte a CORS preflight
@@ -247,13 +348,23 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     });
     return res.end();
   }
 
-  const url = req.url;
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const url = parsedUrl.pathname;
   const method = req.method;
+
+  if (method === 'GET' && url === '/startups') {
+    return handleListStartups(req, res);
+  }
+
+  if (method === 'GET' && url.startsWith('/startups/')) {
+    const startupId = decodeURIComponent(url.replace('/startups/', '').trim());
+    return handleGetStartupById(req, res, startupId);
+  }
 
   if (method === 'POST' && url === '/auth/register') {
     return handleRegister(req, res);
