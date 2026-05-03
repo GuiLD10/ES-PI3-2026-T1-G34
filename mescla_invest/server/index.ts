@@ -1,6 +1,6 @@
 // Autor: Guilherme Lange Dallora
 // RA: 23012353
-// Descrição: Servidor Node.js — MesclaInvest (sem frameworks)
+// Descrição: Servidor Node.js
 
 import 'dotenv/config';
 import * as http from 'http';
@@ -8,7 +8,7 @@ import * as admin from 'firebase-admin';
 import fetch from 'node-fetch';
 import * as path from 'path';
 
-// ─── Interfaces ──────────────────────────────────────────────────────────────
+//  Interfaces 
 
 interface RegisterBody {
   nome: string;
@@ -60,7 +60,7 @@ interface ApiResponse {
   data?: StartupData | StartupData[];
 }
 
-// ─── Inicialização do Firebase Admin SDK ────────────────────────────────────
+//  Inicialização do Firebase Admin SDK 
 
 const serviceAccount = require(path.resolve(__dirname, '../serviceAccountKey.json'));
 
@@ -74,7 +74,7 @@ const auth = admin.auth();
 const PORT: number = Number(process.env.PORT) || 3000;
 const FIREBASE_WEB_API_KEY: string = process.env.FIREBASE_WEB_API_KEY ?? '';
 
-// ─── Helpers de Validação ────────────────────────────────────────────────────
+//  Helpers de Validação 
 
 function validarEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -176,7 +176,7 @@ function montarStartup(doc: admin.firestore.DocumentSnapshot): StartupData {
   };
 }
 
-// ─── Rota: Cadastro ──────────────────────────────────────────────────────────
+//  Rota: Cadastro 
 
 async function handleRegister(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   let body: RegisterBody;
@@ -238,7 +238,7 @@ async function handleRegister(req: http.IncomingMessage, res: http.ServerRespons
   }
 }
 
-// ─── Rota: Login ─────────────────────────────────────────────────────────────
+//  Rota: Login 
 
 async function handleLogin(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   let body: LoginBody;
@@ -282,7 +282,7 @@ async function handleLogin(req: http.IncomingMessage, res: http.ServerResponse):
   }
 }
 
-// ─── Rota: Recuperação de Senha ───────────────────────────────────────────────
+//  Rota: Recuperação de Senha 
 
 async function handleForgotPassword(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   let body: ForgotPasswordBody;
@@ -338,7 +338,7 @@ async function handleForgotPassword(req: http.IncomingMessage, res: http.ServerR
   }
 }
 
-// ─── Rota: Listar Startups ───────────────────────────────────────────────────
+//  Rota: Listar Startups 
 
 async function handleListStartups(_req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   try {
@@ -364,7 +364,7 @@ async function handleListStartups(_req: http.IncomingMessage, res: http.ServerRe
   }
 }
 
-// ─── Rota: Buscar Startup por ID ─────────────────────────────────────────────
+//  Rota: Buscar Startup por ID 
 
 async function handleGetStartupById(
   _req: http.IncomingMessage,
@@ -410,7 +410,7 @@ async function handleGetStartupById(
   }
 }
 
-// ─── Servidor HTTP ────────────────────────────────────────────────────────────
+//  Servidor HTTP 
 
 const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
   // Suporte a CORS preflight
@@ -452,7 +452,7 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
   enviarJSON(res, 404, { success: false, message: 'Rota não encontrada.' });
 });
 
-// ─── Iniciar servidor ─────────────────────────────────────────────────────────
+//  Iniciar servidor 
 
 server.listen(PORT, () => {
   console.log(`Servidor MesclaInvest rodando em http://localhost:${PORT}`);
