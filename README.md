@@ -21,10 +21,11 @@ O projeto explora conceitos de:
 OBS.: A aplicação possui caráter educacional, ou seja, não envolve dinheiro real e integração com redes blockchain reais.
 
 Tecnologias Utilizadas
-- Flutter - Desenvolvumento da aplicação mobile
-- Dart - Linguagem de programação de Flutter
+- Flutter - Desenvolvimento da aplicação mobile
+- Dart - Linguagem de programação do Flutter
 - Firebase Firestore - Banco de dados NoSQL
-- Firebase Authentication - Autenyicação de usuários
+- Firebase Authentication - Autenticação de usuários
+- Node.js + TypeScript - Servidor backend
 - GitHub - Versionamento do código
 - Git - Controle de versão
 
@@ -45,6 +46,8 @@ Salve o arquivo 'serviceAccountKey.json' na pasta 'mescla_invest'.
 Crie o arquivo `mescla_invest/server/.env` com o conteúdo do .env.
 
 ### 3. Instale as dependências do servidor Node.js
+
+O servidor utiliza **TypeScript**. As dependências de desenvolvimento (compilador e tipos) já estão listadas no `package.json` e serão instaladas automaticamente:
 
 ```bash
 cd mescla_invest/server
@@ -79,21 +82,32 @@ static const String _baseUrl = 'http://192.168.X.X:3000';
 
 ---
 
-### 6. Inicie o servidor Node.js
+### 6. Inicie o servidor Node.js (TypeScript)
 
 Abra um terminal e execute:
 
 ```bash
 cd mescla_invest/server
-node index.js
+npm run dev
 ```
+
+Este comando utiliza `ts-node` para executar o `index.ts` diretamente, sem necessidade de compilação prévia.
 
 Você verá a mensagem:
 ```
 Servidor MesclaInvest rodando em http://localhost:3000
 ```
 
-> **Mantenha este terminal aberto** enquanto usa o app. Sempre que editar o `index.js`, pare o servidor com `Ctrl+C` e reinicie com `node index.js`.
+> **Mantenha este terminal aberto** enquanto usa o app. Sempre que editar o `index.ts`, pare o servidor com `Ctrl+C` e reinicie com `npm run dev`.
+
+#### Alternativa: build de produção
+
+Se preferir compilar o TypeScript antes de executar:
+
+```bash
+npm run build   # Compila index.ts → dist/index.js
+npm start       # Executa a versão compilada
+```
 
 ---
 
