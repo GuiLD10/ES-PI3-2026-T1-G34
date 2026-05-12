@@ -12,7 +12,7 @@ import 'screens/auth/register_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
 import 'screens/catalog/catalog_screen.dart';
 import 'screens/catalog/startup_detail_screen.dart';
-
+import 'screens/settings/settings_screen.dart';
 class App extends StatelessWidget {
   const App({super.key});
 
@@ -30,6 +30,7 @@ class App extends StatelessWidget {
         AppRoutes.forgotPassword:     (_) => const ForgotPasswordScreen(),
         AppRoutes.catalog:            (_) => const CatalogScreen(),
         AppRoutes.startupDetail:      (_) => const StartupDetailScreen(),
+        AppRoutes.settings:           (_) => const SettingsScreen(),
       },
     );
   }
