@@ -37,6 +37,8 @@ interface StartupData {
   status: string;
   capital_aportado: number;
   tokens_emitidos: number;
+  preco_atual_centavos: number;
+  preco_primario_centavos: number;
   video_demo: string;
   socios: unknown[];
   mentores_conselho: unknown[];
@@ -167,6 +169,8 @@ function montarStartup(doc: admin.firestore.DocumentSnapshot): StartupData {
     status: (dados.status as string) || '',
     capital_aportado: Number(dados.capital_aportado) || 0,
     tokens_emitidos: Number(dados.tokens_emitidos) || 0,
+    preco_atual_centavos: Number(dados.preco_atual_centavos) || 0,
+    preco_primario_centavos: Number(dados.preco_primario_centavos) || 0,
     video_demo: (dados.video_demo as string) || '',
     socios: Array.isArray(dados.socios) ? dados.socios : [],
     mentores_conselho: Array.isArray(dados.mentores_conselho) ? dados.mentores_conselho : [],
@@ -220,7 +224,10 @@ async function handleRegister(req: http.IncomingMessage, res: http.ServerRespons
       email: email.trim(),
       cpf: cpf.replace(/\D/g, ''),
       telefone: telefone.replace(/\D/g, ''),
+      saldo_disponivel_centavos: 0,
+      saldo_bloqueado_centavos: 0,
       criadoEm: admin.firestore.FieldValue.serverTimestamp(),
+      atualizado_em: admin.firestore.FieldValue.serverTimestamp(),
     });
 
     return enviarJSON(res, 201, {
