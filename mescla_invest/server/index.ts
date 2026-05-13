@@ -7,6 +7,8 @@ import * as http from 'http';
 import * as admin from 'firebase-admin';
 import fetch from 'node-fetch';
 import * as path from 'path';
+import { criarOfertaCompraBalcao } from './balcao_ordens';
+import { ErroBalcao } from './balcao_validacoes';
 
 //  Interfaces 
 
@@ -59,7 +61,7 @@ interface ApiResponse {
   uid?: string;
   token?: string;
   field?: string;
-  data?: StartupData | StartupData[];
+  data?: unknown;
 }
 
 //  Inicialização do Firebase Admin SDK 
@@ -417,6 +419,41 @@ async function handleGetStartupById(
   }
 }
 
+//  Rota: Criar Oferta de Compra no Balcao
+
+async function handleCreateOrder(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  let body: Record<string, unknown>;
+  try {
+    body = await lerBody<Record<string, unknown>>(req);
+  } catch {
+    return enviarJSON(res, 400, { success: false, message: 'RequisiÃ§Ã£o invÃ¡lida.' });
+  }
+
+  try {
+    const oferta = await criarOfertaCompraBalcao(req, db, auth, body);
+
+    return enviarJSON(res, 201, {
+      success: true,
+      message: 'Oferta de compra criada com sucesso.',
+      data: oferta,
+    });
+  } catch (error: unknown) {
+    if (error instanceof ErroBalcao) {
+      return enviarJSON(res, error.statusCode, {
+        success: false,
+        field: error.field,
+        message: error.message,
+      });
+    }
+
+    console.error('Erro ao criar oferta no balcao:', error);
+    return enviarJSON(res, 500, {
+      success: false,
+      message: 'Erro interno ao criar oferta no balcao. Tente novamente.',
+    });
+  }
+}
+
 //  Servidor HTTP 
 
 const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
@@ -441,6 +478,10 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
   if (method === 'GET' && url.startsWith('/startups/')) {
     const startupId = decodeURIComponent(url.replace('/startups/', '').trim());
     return handleGetStartupById(req, res, startupId);
+  }
+
+  if (method === 'POST' && url === '/orders') {
+    return handleCreateOrder(req, res);
   }
 
   if (method === 'POST' && url === '/auth/register') {
