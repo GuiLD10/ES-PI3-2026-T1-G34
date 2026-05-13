@@ -7,6 +7,7 @@ import * as http from 'http';
 import * as admin from 'firebase-admin';
 import fetch from 'node-fetch';
 import * as path from 'path';
+import { cancelarOfertaBalcao } from './balcao_cancelamento';
 import { criarOfertaBalcao } from './balcao_ordens';
 import { ErroBalcao } from './balcao_validacoes';
 
@@ -454,6 +455,38 @@ async function handleCreateOrder(req: http.IncomingMessage, res: http.ServerResp
   }
 }
 
+//  Rota: Cancelar Oferta no Balcao
+
+async function handleCancelOrder(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  orderId: string
+): Promise<void> {
+  try {
+    const oferta = await cancelarOfertaBalcao(req, db, auth, orderId);
+
+    return enviarJSON(res, 200, {
+      success: true,
+      message: 'Oferta cancelada com sucesso.',
+      data: oferta,
+    });
+  } catch (error: unknown) {
+    if (error instanceof ErroBalcao) {
+      return enviarJSON(res, error.statusCode, {
+        success: false,
+        field: error.field,
+        message: error.message,
+      });
+    }
+
+    console.error('Erro ao cancelar oferta no balcao:', error);
+    return enviarJSON(res, 500, {
+      success: false,
+      message: 'Erro interno ao cancelar oferta no balcao. Tente novamente.',
+    });
+  }
+}
+
 //  Servidor HTTP 
 
 const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
@@ -482,6 +515,11 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
 
   if (method === 'POST' && url === '/orders') {
     return handleCreateOrder(req, res);
+  }
+
+  if (method === 'POST' && url.startsWith('/orders/') && url.endsWith('/cancel')) {
+    const orderId = decodeURIComponent(url.replace('/orders/', '').replace('/cancel', '').trim());
+    return handleCancelOrder(req, res, orderId);
   }
 
   if (method === 'POST' && url === '/auth/register') {
