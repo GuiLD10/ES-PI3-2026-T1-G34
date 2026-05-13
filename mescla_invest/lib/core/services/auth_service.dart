@@ -16,6 +16,25 @@ class AuthService {
 
   // Para rodar no Windows ou Chrome
   static const String _baseUrl = 'http://localhost:3000';
+  static String? _token;
+  static String? _uid;
+
+  static String? get token => _token;
+  static String? get uid => _uid;
+  static bool get estaAutenticado => _token != null && _token!.isNotEmpty;
+
+  static Map<String, String> headersAutenticados() {
+    final tokenAtual = _token;
+
+    if (tokenAtual == null || tokenAtual.isEmpty) {
+      throw const AuthServiceException('Usuario nao autenticado.');
+    }
+
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $tokenAtual',
+    };
+  }
 
   /// Realiza o cadastro de um novo usuário.
   /// Retorna um mapa com:
@@ -47,6 +66,13 @@ class AuthService {
           .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (data['success'] == true) {
+        final loginData = await login(email: email, senha: senha);
+        if (loginData['success'] == true) {
+          data['uid'] = loginData['uid'];
+          data['token'] = loginData['token'];
+        }
+      }
       return data;
     } catch (e) {
       return {
@@ -74,6 +100,9 @@ class AuthService {
           .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (data['success'] == true) {
+        _armazenarSessao(data);
+      }
       return data;
     } catch (e) {
       return {
@@ -108,6 +137,29 @@ class AuthService {
         'message': 'Erro de conexão. Verifique se o servidor está rodando.',
       };
     }
+  }
+
+  static void _armazenarSessao(Map<String, dynamic> data) {
+    final tokenRecebido = data['token']?.toString();
+    final uidRecebido = data['uid']?.toString();
+
+    if (tokenRecebido != null && tokenRecebido.isNotEmpty) {
+      _token = tokenRecebido;
+    }
+    if (uidRecebido != null && uidRecebido.isNotEmpty) {
+      _uid = uidRecebido;
+    }
+  }
+}
+
+class AuthServiceException implements Exception {
+  final String message;
+
+  const AuthServiceException(this.message);
+
+  @override
+  String toString() {
+    return message;
   }
 }
 

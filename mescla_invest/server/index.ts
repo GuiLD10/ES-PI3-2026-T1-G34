@@ -7,6 +7,14 @@ import * as http from 'http';
 import * as admin from 'firebase-admin';
 import fetch from 'node-fetch';
 import * as path from 'path';
+import { cancelarOfertaBalcao } from './balcao_cancelamento';
+import {
+  consultarMinhasOfertasBalcao,
+  consultarOrderBookBalcao,
+  consultarTransacoesStartupBalcao,
+} from './balcao_consultas';
+import { criarOfertaBalcao } from './balcao_ordens';
+import { ErroBalcao } from './balcao_validacoes';
 
 //  Interfaces 
 
@@ -37,6 +45,8 @@ interface StartupData {
   status: string;
   capital_aportado: number;
   tokens_emitidos: number;
+  preco_atual_centavos: number;
+  preco_primario_centavos: number;
   video_demo: string;
   socios: unknown[];
   mentores_conselho: unknown[];
@@ -57,7 +67,7 @@ interface ApiResponse {
   uid?: string;
   token?: string;
   field?: string;
-  data?: StartupData | StartupData[];
+  data?: unknown;
 }
 
 //  Inicialização do Firebase Admin SDK 
@@ -131,7 +141,7 @@ function enviarJSON(res: http.ServerResponse, statusCode: number, data: ApiRespo
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   });
   res.end(json);
@@ -167,6 +177,8 @@ function montarStartup(doc: admin.firestore.DocumentSnapshot): StartupData {
     status: (dados.status as string) || '',
     capital_aportado: Number(dados.capital_aportado) || 0,
     tokens_emitidos: Number(dados.tokens_emitidos) || 0,
+    preco_atual_centavos: Number(dados.preco_atual_centavos) || 0,
+    preco_primario_centavos: Number(dados.preco_primario_centavos) || 0,
     video_demo: (dados.video_demo as string) || '',
     socios: Array.isArray(dados.socios) ? dados.socios : [],
     mentores_conselho: Array.isArray(dados.mentores_conselho) ? dados.mentores_conselho : [],
@@ -220,7 +232,10 @@ async function handleRegister(req: http.IncomingMessage, res: http.ServerRespons
       email: email.trim(),
       cpf: cpf.replace(/\D/g, ''),
       telefone: telefone.replace(/\D/g, ''),
+      saldo_disponivel_centavos: 0,
+      saldo_bloqueado_centavos: 0,
       criadoEm: admin.firestore.FieldValue.serverTimestamp(),
+      atualizado_em: admin.firestore.FieldValue.serverTimestamp(),
     });
 
     return enviarJSON(res, 201, {
@@ -410,6 +425,148 @@ async function handleGetStartupById(
   }
 }
 
+//  Rota: Criar Oferta no Balcao
+
+async function handleCreateOrder(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  let body: Record<string, unknown>;
+  try {
+    body = await lerBody<Record<string, unknown>>(req);
+  } catch {
+    return enviarJSON(res, 400, { success: false, message: 'RequisiÃ§Ã£o invÃ¡lida.' });
+  }
+
+  try {
+    const oferta = await criarOfertaBalcao(req, db, auth, body);
+
+    return enviarJSON(res, 201, {
+      success: true,
+      message: 'Oferta criada com sucesso.',
+      data: oferta,
+    });
+  } catch (error: unknown) {
+    if (error instanceof ErroBalcao) {
+      return enviarJSON(res, error.statusCode, {
+        success: false,
+        field: error.field,
+        message: error.message,
+      });
+    }
+
+    console.error('Erro ao criar oferta no balcao:', error);
+    return enviarJSON(res, 500, {
+      success: false,
+      message: 'Erro interno ao criar oferta no balcao. Tente novamente.',
+    });
+  }
+}
+
+//  Rota: Cancelar Oferta no Balcao
+
+async function handleCancelOrder(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  orderId: string
+): Promise<void> {
+  try {
+    const oferta = await cancelarOfertaBalcao(req, db, auth, orderId);
+
+    return enviarJSON(res, 200, {
+      success: true,
+      message: 'Oferta cancelada com sucesso.',
+      data: oferta,
+    });
+  } catch (error: unknown) {
+    if (error instanceof ErroBalcao) {
+      return enviarJSON(res, error.statusCode, {
+        success: false,
+        field: error.field,
+        message: error.message,
+      });
+    }
+
+    console.error('Erro ao cancelar oferta no balcao:', error);
+    return enviarJSON(res, 500, {
+      success: false,
+      message: 'Erro interno ao cancelar oferta no balcao. Tente novamente.',
+    });
+  }
+}
+
+async function handleOrderBook(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  startupId: string
+): Promise<void> {
+  try {
+    const orderBook = await consultarOrderBookBalcao(req, db, auth, startupId);
+
+    return enviarJSON(res, 200, {
+      success: true,
+      data: orderBook,
+    });
+  } catch (error: unknown) {
+    return handleErroBalcao(res, error, 'Erro interno ao buscar livro de ofertas.');
+  }
+}
+
+async function handleMyOrders(
+  req: http.IncomingMessage,
+  res: http.ServerResponse
+): Promise<void> {
+  try {
+    const ofertas = await consultarMinhasOfertasBalcao(req, db, auth);
+
+    return enviarJSON(res, 200, {
+      success: true,
+      data: ofertas,
+    });
+  } catch (error: unknown) {
+    return handleErroBalcao(res, error, 'Erro interno ao buscar suas ofertas.');
+  }
+}
+
+async function handleStartupTransactions(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  startupId: string
+): Promise<void> {
+  try {
+    const transacoes = await consultarTransacoesStartupBalcao(
+      req,
+      db,
+      auth,
+      startupId
+    );
+
+    return enviarJSON(res, 200, {
+      success: true,
+      data: transacoes,
+    });
+  } catch (error: unknown) {
+    return handleErroBalcao(res, error, 'Erro interno ao buscar transacoes.');
+  }
+}
+
+function handleErroBalcao(
+  res: http.ServerResponse,
+  error: unknown,
+  mensagemPadrao: string
+): void {
+  if (error instanceof ErroBalcao) {
+    return enviarJSON(res, error.statusCode, {
+      success: false,
+      field: error.field,
+      message: error.message,
+    });
+  }
+
+  console.error(mensagemPadrao, error);
+  return enviarJSON(res, 500, {
+    success: false,
+    message: mensagemPadrao,
+  });
+}
+
 //  Servidor HTTP 
 
 const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
@@ -417,7 +574,7 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     });
     return res.end();
@@ -426,14 +583,37 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
   const parsedUrl = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
   const url = parsedUrl.pathname;
   const method = req.method;
+  const orderBookMatch = url.match(/^\/startups\/([^/]+)\/order-book$/);
+  const transactionsMatch = url.match(/^\/startups\/([^/]+)\/transactions$/);
 
   if (method === 'GET' && url === '/startups') {
     return handleListStartups(req, res);
   }
 
+  if (method === 'GET' && orderBookMatch) {
+    return handleOrderBook(req, res, decodeURIComponent(orderBookMatch[1]));
+  }
+
+  if (method === 'GET' && transactionsMatch) {
+    return handleStartupTransactions(req, res, decodeURIComponent(transactionsMatch[1]));
+  }
+
   if (method === 'GET' && url.startsWith('/startups/')) {
     const startupId = decodeURIComponent(url.replace('/startups/', '').trim());
     return handleGetStartupById(req, res, startupId);
+  }
+
+  if (method === 'GET' && url === '/orders/my') {
+    return handleMyOrders(req, res);
+  }
+
+  if (method === 'POST' && url === '/orders') {
+    return handleCreateOrder(req, res);
+  }
+
+  if (method === 'POST' && url.startsWith('/orders/') && url.endsWith('/cancel')) {
+    const orderId = decodeURIComponent(url.replace('/orders/', '').replace('/cancel', '').trim());
+    return handleCancelOrder(req, res, orderId);
   }
 
   if (method === 'POST' && url === '/auth/register') {
