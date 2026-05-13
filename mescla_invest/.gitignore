@@ -67,3 +67,6 @@ yarn-error.log*
 # Arquivos gerados pelo build — não precisam de versionamento
 .flutter-plugins
 flutter_export_environment.sh
+
+node_modules/
+server/node_modules/
