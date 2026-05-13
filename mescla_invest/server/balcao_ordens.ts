@@ -11,6 +11,7 @@ import {
   TIPOS_OFERTA,
   type OfertaFirestore,
 } from './balcao_schema';
+import { executarMatchBalcao } from './balcao_match';
 import {
   ErroBalcao,
   autenticarUsuarioBalcao,
@@ -37,6 +38,8 @@ export interface OfertaCriadaBalcao {
   quantidade_restante: number;
   valor_unitario_centavos: number;
   status: string;
+  quantidade_executada: number;
+  transacoes_executadas: number;
 }
 
 interface StartupBalcaoTransacao {
@@ -132,15 +135,18 @@ export async function criarOfertaCompraBalcao(
       valorUnitarioCentavos,
     }));
   });
+  const match = await executarMatchBalcao(db, ofertaRef.id);
 
   return {
     oferta_id: ofertaRef.id,
     tipo: TIPOS_OFERTA.compra,
     startup_id: startupId,
     quantidade_original: quantidade,
-    quantidade_restante: quantidade,
+    quantidade_restante: match.quantidade_restante,
     valor_unitario_centavos: valorUnitarioCentavos,
-    status: STATUS_OFERTA.aberta,
+    status: match.status,
+    quantidade_executada: match.quantidade_executada,
+    transacoes_executadas: match.transacoes_executadas,
   };
 }
 
@@ -206,15 +212,18 @@ export async function criarOfertaVendaBalcao(
       valorUnitarioCentavos,
     }));
   });
+  const match = await executarMatchBalcao(db, ofertaRef.id);
 
   return {
     oferta_id: ofertaRef.id,
     tipo: TIPOS_OFERTA.venda,
     startup_id: startupId,
     quantidade_original: quantidade,
-    quantidade_restante: quantidade,
+    quantidade_restante: match.quantidade_restante,
     valor_unitario_centavos: valorUnitarioCentavos,
-    status: STATUS_OFERTA.aberta,
+    status: match.status,
+    quantidade_executada: match.quantidade_executada,
+    transacoes_executadas: match.transacoes_executadas,
   };
 }
 
