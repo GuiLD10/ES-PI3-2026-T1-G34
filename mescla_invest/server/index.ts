@@ -7,7 +7,7 @@ import * as http from 'http';
 import * as admin from 'firebase-admin';
 import fetch from 'node-fetch';
 import * as path from 'path';
-import { criarOfertaCompraBalcao } from './balcao_ordens';
+import { criarOfertaBalcao } from './balcao_ordens';
 import { ErroBalcao } from './balcao_validacoes';
 
 //  Interfaces 
@@ -419,7 +419,7 @@ async function handleGetStartupById(
   }
 }
 
-//  Rota: Criar Oferta de Compra no Balcao
+//  Rota: Criar Oferta no Balcao
 
 async function handleCreateOrder(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   let body: Record<string, unknown>;
@@ -430,11 +430,11 @@ async function handleCreateOrder(req: http.IncomingMessage, res: http.ServerResp
   }
 
   try {
-    const oferta = await criarOfertaCompraBalcao(req, db, auth, body);
+    const oferta = await criarOfertaBalcao(req, db, auth, body);
 
     return enviarJSON(res, 201, {
       success: true,
-      message: 'Oferta de compra criada com sucesso.',
+      message: 'Oferta criada com sucesso.',
       data: oferta,
     });
   } catch (error: unknown) {

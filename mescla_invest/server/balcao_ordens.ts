@@ -18,6 +18,7 @@ import {
   validarPrecoDentroDaFaixa,
   validarQuantidadeTokens,
   validarSaldoDisponivel,
+  validarTokensDisponiveis,
   validarTipoOferta,
 } from './balcao_validacoes';
 
@@ -46,6 +47,27 @@ interface StartupBalcaoTransacao {
 interface CarteiraBalcaoTransacao {
   saldoDisponivelCentavos: number;
   saldoBloqueadoCentavos: number;
+}
+
+interface AtivoBalcaoTransacao {
+  quantidadeDisponivel: number;
+  quantidadeBloqueada: number;
+  valorMedioCentavos: number;
+}
+
+export async function criarOfertaBalcao(
+  req: http.IncomingMessage,
+  db: admin.firestore.Firestore,
+  auth: admin.auth.Auth,
+  body: CriarOfertaBalcaoBody
+): Promise<OfertaCriadaBalcao> {
+  const tipo = validarTipoOferta(body.tipo);
+
+  if (tipo === TIPOS_OFERTA.compra) {
+    return criarOfertaCompraBalcao(req, db, auth, body);
+  }
+
+  return criarOfertaVendaBalcao(req, db, auth, body);
 }
 
 export async function criarOfertaCompraBalcao(
@@ -122,8 +144,82 @@ export async function criarOfertaCompraBalcao(
   };
 }
 
+export async function criarOfertaVendaBalcao(
+  req: http.IncomingMessage,
+  db: admin.firestore.Firestore,
+  auth: admin.auth.Auth,
+  body: CriarOfertaBalcaoBody
+): Promise<OfertaCriadaBalcao> {
+  const usuario = await autenticarUsuarioBalcao(req, auth);
+  const tipo = validarTipoOferta(body.tipo);
+
+  if (tipo !== TIPOS_OFERTA.venda) {
+    throw new ErroBalcao(
+      400,
+      'Tipo de oferta invalido para venda.',
+      'tipo'
+    );
+  }
+
+  const startupId = normalizarId(body.startup_id, 'startup_id');
+  const quantidade = validarQuantidadeTokens(body.quantidade);
+  const valorUnitarioCentavos = converterReaisParaCentavos(
+    body.valor_unitario
+  );
+  const ofertaRef = db.collection(COLECOES_BALCAO.ofertas).doc();
+
+  await db.runTransaction(async (transaction) => {
+    const startup = await carregarStartupAtiva(
+      transaction,
+      db,
+      startupId
+    );
+    validarPrecoDentroDaFaixa(
+      valorUnitarioCentavos,
+      startup.precoReferenciaCentavos
+    );
+
+    const ativoRef = db
+      .collection(COLECOES_BALCAO.usuarios)
+      .doc(usuario.uid)
+      .collection('ativos')
+      .doc(startup.id);
+    const ativo = await carregarAtivo(
+      transaction,
+      ativoRef
+    );
+    validarTokensDisponiveis(ativo, quantidade);
+
+    transaction.set(ativoRef, {
+      startup_id: startup.id,
+      quantidade_disponivel: ativo.quantidadeDisponivel - quantidade,
+      quantidade_bloqueada: ativo.quantidadeBloqueada + quantidade,
+      valor_medio_centavos: ativo.valorMedioCentavos,
+      atualizado_em: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    transaction.set(ofertaRef, montarOferta({
+      tipo: TIPOS_OFERTA.venda,
+      usuarioUid: usuario.uid,
+      startupId: startup.id,
+      quantidade,
+      valorUnitarioCentavos,
+    }));
+  });
+
+  return {
+    oferta_id: ofertaRef.id,
+    tipo: TIPOS_OFERTA.venda,
+    startup_id: startupId,
+    quantidade_original: quantidade,
+    quantidade_restante: quantidade,
+    valor_unitario_centavos: valorUnitarioCentavos,
+    status: STATUS_OFERTA.aberta,
+  };
+}
+
 function montarOferta(params: {
-  tipo: typeof TIPOS_OFERTA.compra;
+  tipo: typeof TIPOS_OFERTA.compra | typeof TIPOS_OFERTA.venda;
   usuarioUid: string;
   startupId: string;
   quantidade: number;
@@ -141,6 +237,24 @@ function montarOferta(params: {
     status: STATUS_OFERTA.aberta,
     criado_em: timestamp,
     atualizado_em: timestamp,
+  };
+}
+
+async function carregarAtivo(
+  transaction: admin.firestore.Transaction,
+  ativoRef: admin.firestore.DocumentReference
+): Promise<AtivoBalcaoTransacao> {
+  const doc = await transaction.get(ativoRef);
+  const dados = doc.exists ? doc.data() ?? {} : {};
+
+  return {
+    quantidadeDisponivel: lerInteiroNaoNegativo(
+      dados.quantidade_disponivel
+    ),
+    quantidadeBloqueada: lerInteiroNaoNegativo(
+      dados.quantidade_bloqueada
+    ),
+    valorMedioCentavos: lerInteiroNaoNegativo(dados.valor_medio_centavos),
   };
 }
 
