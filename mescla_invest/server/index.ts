@@ -8,6 +8,11 @@ import * as admin from 'firebase-admin';
 import fetch from 'node-fetch';
 import * as path from 'path';
 import { cancelarOfertaBalcao } from './balcao_cancelamento';
+import {
+  consultarMinhasOfertasBalcao,
+  consultarOrderBookBalcao,
+  consultarTransacoesStartupBalcao,
+} from './balcao_consultas';
 import { criarOfertaBalcao } from './balcao_ordens';
 import { ErroBalcao } from './balcao_validacoes';
 
@@ -487,6 +492,81 @@ async function handleCancelOrder(
   }
 }
 
+async function handleOrderBook(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  startupId: string
+): Promise<void> {
+  try {
+    const orderBook = await consultarOrderBookBalcao(req, db, auth, startupId);
+
+    return enviarJSON(res, 200, {
+      success: true,
+      data: orderBook,
+    });
+  } catch (error: unknown) {
+    return handleErroBalcao(res, error, 'Erro interno ao buscar livro de ofertas.');
+  }
+}
+
+async function handleMyOrders(
+  req: http.IncomingMessage,
+  res: http.ServerResponse
+): Promise<void> {
+  try {
+    const ofertas = await consultarMinhasOfertasBalcao(req, db, auth);
+
+    return enviarJSON(res, 200, {
+      success: true,
+      data: ofertas,
+    });
+  } catch (error: unknown) {
+    return handleErroBalcao(res, error, 'Erro interno ao buscar suas ofertas.');
+  }
+}
+
+async function handleStartupTransactions(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  startupId: string
+): Promise<void> {
+  try {
+    const transacoes = await consultarTransacoesStartupBalcao(
+      req,
+      db,
+      auth,
+      startupId
+    );
+
+    return enviarJSON(res, 200, {
+      success: true,
+      data: transacoes,
+    });
+  } catch (error: unknown) {
+    return handleErroBalcao(res, error, 'Erro interno ao buscar transacoes.');
+  }
+}
+
+function handleErroBalcao(
+  res: http.ServerResponse,
+  error: unknown,
+  mensagemPadrao: string
+): void {
+  if (error instanceof ErroBalcao) {
+    return enviarJSON(res, error.statusCode, {
+      success: false,
+      field: error.field,
+      message: error.message,
+    });
+  }
+
+  console.error(mensagemPadrao, error);
+  return enviarJSON(res, 500, {
+    success: false,
+    message: mensagemPadrao,
+  });
+}
+
 //  Servidor HTTP 
 
 const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
@@ -503,14 +583,28 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
   const parsedUrl = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
   const url = parsedUrl.pathname;
   const method = req.method;
+  const orderBookMatch = url.match(/^\/startups\/([^/]+)\/order-book$/);
+  const transactionsMatch = url.match(/^\/startups\/([^/]+)\/transactions$/);
 
   if (method === 'GET' && url === '/startups') {
     return handleListStartups(req, res);
   }
 
+  if (method === 'GET' && orderBookMatch) {
+    return handleOrderBook(req, res, decodeURIComponent(orderBookMatch[1]));
+  }
+
+  if (method === 'GET' && transactionsMatch) {
+    return handleStartupTransactions(req, res, decodeURIComponent(transactionsMatch[1]));
+  }
+
   if (method === 'GET' && url.startsWith('/startups/')) {
     const startupId = decodeURIComponent(url.replace('/startups/', '').trim());
     return handleGetStartupById(req, res, startupId);
+  }
+
+  if (method === 'GET' && url === '/orders/my') {
+    return handleMyOrders(req, res);
   }
 
   if (method === 'POST' && url === '/orders') {
