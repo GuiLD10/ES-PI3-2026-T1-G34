@@ -12,7 +12,7 @@ class AuthService {
   // Em web/Windows: use localhost
 
   // Para rodar no emulador Android
-  //static const String _baseUrl = 'http://10.0.2.2:3000';
+  // static const String _baseUrl = 'http://10.0.2.2:3000';
 
   // Para rodar no Windows ou Chrome
   static const String _baseUrl = 'http://localhost:3000';
