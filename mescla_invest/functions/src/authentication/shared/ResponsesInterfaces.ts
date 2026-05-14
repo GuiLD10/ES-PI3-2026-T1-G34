@@ -1,7 +1,4 @@
-// Autor: Guilherme Lange Dallora
-// RA: 23012353
-// Descrição: interface para restornar e interpretar respostas
-import { StartupData } from "../../startups/types/StartupInterfaces"
+﻿import {StartupData} from "../../startups/types/StartupInterfaces";
 
 export interface FirebaseLoginResponse {
   localId?: string;

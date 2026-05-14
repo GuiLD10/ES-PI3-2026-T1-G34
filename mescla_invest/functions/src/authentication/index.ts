@@ -1,12 +1,6 @@
-// Autor: Henrique Soares Cunha
-// RA: 23013359
-// Descrição: index authentication
+﻿
+export {loginUsuario} from "./handlers/LoginHandler";
 
-// Login
-export { loginUsuario } from "./handlers/LoginHandler";
+export {criarUsuarioAuth} from "./handlers/CadastroHandler";
 
-// Cadastro
-export { criarUsuarioAuth } from "./handlers/CadastroHandler";
-
-// Recuperar senha
-export { handleForgotPassword } from "./handlers/RecuperarSenhaHandler";
+export {handleForgotPassword} from "./handlers/RecuperarSenhaHandler";

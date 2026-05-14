@@ -1,7 +1,4 @@
-// Autor: Guilherme Lange Dallora
-// RA: 23012353
-// Descrição: interface para cadastrar, logar e recuperar senha de usuário
-
+﻿
 export interface RegisterBody {
   nome: string;
   email: string;
@@ -9,7 +6,7 @@ export interface RegisterBody {
   telefone: string;
   senha: string;
   confirmarSenha: string;
-};
+}
 
 export interface LoginBody {
   email: string;
