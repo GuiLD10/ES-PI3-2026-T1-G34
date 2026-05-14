@@ -22,6 +22,8 @@ migrate_working_dir/
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
 #.vscode/
+.agents/
+skills-lock.json
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -54,6 +56,7 @@ server/.env
 # Node.js
 
 # Dependências do servidor (são instaladas com "npm install")
+functions/node_modules/
 server/node_modules/
 node_modules/
 
@@ -67,3 +70,7 @@ yarn-error.log*
 # Arquivos gerados pelo build — não precisam de versionamento
 .flutter-plugins
 flutter_export_environment.sh
+
+# Arquivos gerados pelo firestore para usar as functions
+firestore.indexes.json
+firestore.rules
