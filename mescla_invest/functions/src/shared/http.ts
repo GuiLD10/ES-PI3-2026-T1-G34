@@ -1,7 +1,11 @@
-﻿import * as http from "http";
-import {ApiResponse} from "./ResponsesInterfaces";
+// Autor: Guilherme Lange Dallora
+// RA: 23012353
+// Descrição: metodos para ler e responder requisições
 
-export function lerBody<T = Record<string, unknown>>(
+import * as http from "http";
+import {ApiResponse} from "./types";
+
+export function readJsonBody<T = Record<string, unknown>>(
   req: http.IncomingMessage,
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -13,14 +17,14 @@ export function lerBody<T = Record<string, unknown>>(
       try {
         resolve(body ? (JSON.parse(body) as T) : ({} as T));
       } catch {
-        reject(new Error("JSON invÃ¡lido"));
+        reject(new Error("JSON inválido"));
       }
     });
     req.on("error", reject);
   });
 }
 
-export function enviarJSON(
+export function sendJson(
   res: http.ServerResponse,
   statusCode: number,
   data: ApiResponse,

@@ -1,4 +1,7 @@
-﻿
+// Autor: Guilherme Lange Dallora
+// RA: 23012353
+// Descrição: interface das startups
+
 export interface StartupData {
   id: string;
   nome: string;
@@ -15,4 +18,3 @@ export interface StartupData {
   criado_em: string | null;
   atualizado_em: string | null;
 }
-

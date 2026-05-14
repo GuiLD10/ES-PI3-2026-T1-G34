@@ -1,13 +1,13 @@
-﻿
-import * as admin from "firebase-admin";
+// Autor: Guilherme Lange Dallora
+// RA: 23012353
+// Descrição: conecta com o banco de dados para logar um usuário
+
 import {UserRecord} from "firebase-admin/auth";
 import {HttpsError} from "firebase-functions/https";
-import {FirebaseLoginResponse} from "../shared/ResponsesInterfaces";
+import {auth} from "../../shared/firebase";
+import {FirebaseLoginResponse} from "../../shared/types";
 
-admin.initializeApp();
-
-
-export async function buscarCredenciais(email: string, senha: string) {
+export async function signInWithPassword(email: string, senha: string) {
   const API_KEY = process.env.WEB_API_KEY;
 
   const url =
@@ -33,14 +33,13 @@ export async function buscarCredenciais(email: string, senha: string) {
   return data;
 }
 
-
 export async function getUserToken(data: UserRecord) {
   try {
-    return await admin.auth().createCustomToken(data.uid);
+    return await auth.createCustomToken(data.uid);
   } catch (error) {
     throw new HttpsError(
       "internal",
-      "Erro ao buscar token de usuÃ¡rio.",
+      "Erro ao buscar token de usuário.",
       error,
     );
   }

@@ -1,4 +1,6 @@
-﻿import {StartupData} from "../types/StartupInterfaces";
+// Autor: Guilherme Lange Dallora
+// RA: 23012353
+// Descrição: interface para restornar e interpretar respostas
 
 export interface FirebaseLoginResponse {
   localId?: string;
@@ -12,5 +14,5 @@ export interface ApiResponse {
   uid?: string;
   token?: string;
   field?: string;
-  data?: StartupData | StartupData[];
+  data?: unknown;
 }
