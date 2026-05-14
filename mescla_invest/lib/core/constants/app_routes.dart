@@ -9,10 +9,7 @@ class AppRoutes {
   static const forgotPassword = '/forgot-password';
   static const catalog        = '/catalog';
   static const startupDetail  = '/startup-detail';
-<<<<<<< HEAD
   static const balcao         = '/balcao';
-=======
-  static const settings        = '/settings';
+  static const settings       = '/settings';
   static const wallet         = '/wallet';
->>>>>>> origin/main
 }
