@@ -8,7 +8,7 @@ import {auth} from "../../shared/firebase";
 import {FirebaseLoginResponse} from "../../shared/types";
 
 function getFirebaseWebApiKey(): string {
-  const apiKey = process.env.FIREBASE_WEB_API_KEY ?? process.env.WEB_API_KEY;
+  const apiKey = process.env.WEB_API_KEY;
 
   if (!apiKey) {
     throw new HttpsError("internal", "Firebase Web API key não configurada.");

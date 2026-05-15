@@ -1,4 +1,3 @@
-# Miscellaneous
 *.class
 *.log
 *.pyc
@@ -12,20 +11,11 @@
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-.agents/
-skills-lock.json
-
-# Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
@@ -35,42 +25,31 @@ skills-lock.json
 /build/
 /coverage/
 
-# Symbolication related
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile
 /android/app/release
 
-# Chave privada do Firebase Admin SDK (credenciais de serviço privilegiadas)
 serviceAccountKey.json
-
-# Variáveis de ambiente do servidor Node.js (API keys, segredos)
-server/.env
 .env
+.env.*
+!.env.example
+.runtimeconfig.json
+functions/.env
+functions/.runtimeconfig.json
 
-# Node.js
-
-# Dependências do servidor (são instaladas com "npm install")
-functions/node_modules/
-server/node_modules/
 node_modules/
+functions/node_modules/
 
-# Logs do npm
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Flutter (build artifacts)
-
-# Arquivos gerados pelo build — não precisam de versionamento
 .flutter-plugins
 flutter_export_environment.sh
 
-# Arquivos gerados pelo firestore para usar as functions
 firestore.indexes.json
 firestore.rules
+.firebase/

@@ -3,6 +3,7 @@
 // Descrição: configura Firebase Admin compartilhado
 
 import * as admin from "firebase-admin";
+import {FieldValue} from "firebase-admin/firestore";
 
 if (admin.apps.length === 0) {
   admin.initializeApp();
@@ -11,4 +12,4 @@ if (admin.apps.length === 0) {
 export const firebaseAdmin = admin;
 export const auth = admin.auth();
 export const db = admin.firestore();
-export const fieldValue = admin.firestore.FieldValue;
+export const fieldValue = FieldValue;
