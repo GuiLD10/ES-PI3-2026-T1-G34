@@ -11,6 +11,8 @@ export interface StartupData {
   status: string;
   capital_aportado: number;
   tokens_emitidos: number;
+  preco_atual_centavos: number;
+  preco_primario_centavos: number;
   video_demo: string;
   socios: unknown[];
   mentores_conselho: unknown[];

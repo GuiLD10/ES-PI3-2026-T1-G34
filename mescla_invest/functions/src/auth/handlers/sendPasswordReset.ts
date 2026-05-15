@@ -3,12 +3,19 @@
 // Descrição: Recebe a requisição http de recuperar senha e trata ela
 
 import {onRequest} from "firebase-functions/v2/https";
-import {sendJson} from "../../shared/http";
+import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {validateEmail} from "../../shared/validators";
-import {getUserByEmail} from "../repositories/passwordResetRepository";
+import {
+  getUserByEmail,
+  sendPasswordResetEmail,
+} from "../repositories/passwordResetRepository";
 import {ForgotPasswordBody} from "../types/authTypes";
 
 export const sendPasswordReset = onRequest(async (req, res) => {
+  if (handleCorsPreflight(req, res)) {
+    return;
+  }
+
   if (req.method !== "POST") {
     return sendJson(res, 405, {
       success: false,
@@ -16,7 +23,7 @@ export const sendPasswordReset = onRequest(async (req, res) => {
     });
   }
 
-  const {email} = req.body as ForgotPasswordBody;
+  const {email} = (req.body ?? {}) as ForgotPasswordBody;
   if (!email || !validateEmail(email)) {
     return sendJson(res, 400, {
       success: false,
@@ -26,10 +33,6 @@ export const sendPasswordReset = onRequest(async (req, res) => {
 
   try {
     await getUserByEmail(email);
-    return sendJson(res, 200, {
-      success: true,
-      message: "Usuário encontrado.",
-    });
   } catch (error: unknown) {
     console.error(error);
     const firebaseError = error as { code?: string };
@@ -43,7 +46,21 @@ export const sendPasswordReset = onRequest(async (req, res) => {
 
     return sendJson(res, 500, {
       success: false,
-      message: "Erro interno.",
+      message: "Erro interno. Tente novamente.",
+    });
+  }
+
+  try {
+    await sendPasswordResetEmail(email);
+    return sendJson(res, 200, {
+      success: true,
+      message: "Instruções enviadas para o e-mail cadastrado.",
+    });
+  } catch (error: unknown) {
+    console.error(error);
+    return sendJson(res, 500, {
+      success: false,
+      message: "Erro ao enviar e-mail. Tente novamente.",
     });
   }
 });

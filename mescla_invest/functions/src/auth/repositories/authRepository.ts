@@ -7,12 +7,22 @@ import {HttpsError} from "firebase-functions/https";
 import {auth} from "../../shared/firebase";
 import {FirebaseLoginResponse} from "../../shared/types";
 
+function getFirebaseWebApiKey(): string {
+  const apiKey = process.env.FIREBASE_WEB_API_KEY ?? process.env.WEB_API_KEY;
+
+  if (!apiKey) {
+    throw new HttpsError("internal", "Firebase Web API key não configurada.");
+  }
+
+  return apiKey;
+}
+
 export async function signInWithPassword(email: string, senha: string) {
-  const API_KEY = process.env.WEB_API_KEY;
+  const apiKey = getFirebaseWebApiKey();
 
   const url =
     "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword" +
-    `?key=${API_KEY}`;
+    `?key=${apiKey}`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -26,7 +36,7 @@ export async function signInWithPassword(email: string, senha: string) {
 
   const data = (await response.json()) as FirebaseLoginResponse;
 
-  if (!response.ok) {
+  if (!response.ok || data.error) {
     throw new HttpsError("unauthenticated", "E-mail ou senha incorretos.");
   }
 

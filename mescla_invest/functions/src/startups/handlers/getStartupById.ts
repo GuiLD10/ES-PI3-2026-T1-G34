@@ -3,11 +3,15 @@
 // Descrição: Recebe a requisição http de buscar startup pelo id e trata ela
 
 import {onRequest} from "firebase-functions/v2/https";
-import {sendJson} from "../../shared/http";
+import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {findStartupById} from "../repositories/startupRepository";
 import {mapStartupDocument} from "../shared/startupMapper";
 
 export const getStartupById = onRequest(async (req, res) => {
+  if (handleCorsPreflight(req, res)) {
+    return;
+  }
+
   if (req.method !== "GET") {
     return sendJson(res, 405, {
       success: false,

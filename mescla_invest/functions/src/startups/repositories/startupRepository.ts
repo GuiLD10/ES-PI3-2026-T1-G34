@@ -12,7 +12,9 @@ export async function listActiveStartups(): Promise<StartupData[]> {
     .where("status", "==", "ativa")
     .get();
 
-  return snapshot.docs.map(mapStartupDocument);
+  return snapshot.docs
+    .map(mapStartupDocument)
+    .sort((first, second) => first.nome.localeCompare(second.nome, "pt-BR"));
 }
 
 export async function findStartupById(startupId: string) {

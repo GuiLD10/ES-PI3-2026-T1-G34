@@ -5,6 +5,12 @@
 import * as http from "http";
 import {ApiResponse} from "./types";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
+
 export function readJsonBody<T = Record<string, unknown>>(
   req: http.IncomingMessage,
 ): Promise<T> {
@@ -32,9 +38,20 @@ export function sendJson(
   const json = JSON.stringify(data);
   res.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    ...corsHeaders,
   });
   res.end(json);
+}
+
+export function handleCorsPreflight(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+): boolean {
+  if (req.method !== "OPTIONS") {
+    return false;
+  }
+
+  res.writeHead(204, corsHeaders);
+  res.end();
+  return true;
 }

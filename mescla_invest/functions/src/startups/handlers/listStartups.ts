@@ -3,11 +3,15 @@
 // Descrição: Recebe a requisição http de listar as startups e trata ela
 
 import {onRequest} from "firebase-functions/v2/https";
-import {sendJson} from "../../shared/http";
+import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {listActiveStartups} from "../repositories/startupRepository";
 import {StartupData} from "../types/startupTypes";
 
 export const listStartups = onRequest(async (req, res) => {
+  if (handleCorsPreflight(req, res)) {
+    return;
+  }
+
   if (req.method !== "GET") {
     return sendJson(res, 405, {
       success: false,

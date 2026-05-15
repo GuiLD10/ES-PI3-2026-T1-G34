@@ -11,6 +11,8 @@ class StartupModel {
   final String status;
   final int capitalAportado;
   final int tokensEmitidos;
+  final int precoAtualCentavos;
+  final int precoPrimarioCentavos;
   final String videoDemo;
   final List<SocioModel> socios;
   final List<MentorConselhoModel> mentoresConselho;
@@ -27,6 +29,8 @@ class StartupModel {
     required this.status,
     required this.capitalAportado,
     required this.tokensEmitidos,
+    required this.precoAtualCentavos,
+    required this.precoPrimarioCentavos,
     required this.videoDemo,
     required this.socios,
     required this.mentoresConselho,
@@ -45,6 +49,8 @@ class StartupModel {
       status: _asString(json['status']),
       capitalAportado: _asInt(json['capital_aportado']),
       tokensEmitidos: _asInt(json['tokens_emitidos']),
+      precoAtualCentavos: _asInt(json['preco_atual_centavos']),
+      precoPrimarioCentavos: _asInt(json['preco_primario_centavos']),
       videoDemo: _asString(json['video_demo']),
       socios: _asList(json['socios']).map(SocioModel.fromJson).toList(),
       mentoresConselho: _asList(
@@ -68,6 +74,8 @@ class StartupModel {
       status: _asString(map['status']),
       capitalAportado: _asInt(map['capital_aportado']),
       tokensEmitidos: _asInt(map['tokens_emitidos']),
+      precoAtualCentavos: _asInt(map['preco_atual_centavos']),
+      precoPrimarioCentavos: _asInt(map['preco_primario_centavos']),
       videoDemo: _asString(map['video_demo']),
       socios: _asList(map['socios']).map(SocioModel.fromJson).toList(),
       mentoresConselho: _asList(

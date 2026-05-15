@@ -3,7 +3,8 @@
 // Descrição: Recebe a requisição http de criar usuário e trata ela
 
 import {onRequest} from "firebase-functions/v2/https";
-import {sendJson} from "../../shared/http";
+import {HttpsError} from "firebase-functions/https";
+import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {
   validateCpf,
   validateEmail,
@@ -16,6 +17,10 @@ import {
 import {RegisterBody} from "../types/authTypes";
 
 export const registerUser = onRequest(async (req, res) => {
+  if (handleCorsPreflight(req, res)) {
+    return;
+  }
+
   if (req.method !== "POST") {
     return sendJson(res, 405, {
       success: false,
@@ -23,43 +28,49 @@ export const registerUser = onRequest(async (req, res) => {
     });
   }
 
-  const body = req.body as RegisterBody;
+  const body = (req.body ?? {}) as RegisterBody;
   const {nome, email, cpf, telefone, senha, confirmarSenha} = body;
 
   if (!nome || nome.trim().length < 2) {
     return sendJson(res, 400, {
       success: false,
-      message: "Nome inválido",
+      field: "Nome",
+      message: "Nome está incorreto",
     });
   }
   if (!email || !validateEmail(email)) {
     return sendJson(res, 400, {
       success: false,
-      message: "Email inválido",
+      field: "E-mail",
+      message: "E-mail está incorreto",
     });
   }
   if (!cpf || !validateCpf(cpf)) {
     return sendJson(res, 400, {
       success: false,
-      message: "CPF inválido",
+      field: "CPF",
+      message: "CPF está incorreto",
     });
   }
   if (!telefone || !validatePhone(telefone)) {
     return sendJson(res, 400, {
       success: false,
-      message: "Telefone inválido",
+      field: "Telefone",
+      message: "Telefone está incorreto",
     });
   }
   if (!senha || senha.length < 6) {
     return sendJson(res, 400, {
       success: false,
-      message: "Senha inválida",
+      field: "Senha",
+      message: "Senha está incorreta",
     });
   }
   if (!confirmarSenha || confirmarSenha !== senha) {
     return sendJson(res, 400, {
       success: false,
-      message: "Confirmar senha diferente da senha",
+      field: "Confirmar Senha",
+      message: "Confirmar Senha está incorreto",
     });
   }
 
@@ -68,14 +79,23 @@ export const registerUser = onRequest(async (req, res) => {
     await saveUserProfile(user.uid, body);
     return sendJson(res, 201, {
       success: true,
-      message: "Usuário criado com sucesso!",
+      message: "Cadastro realizado com sucesso!",
       uid: user.uid,
     });
   } catch (error: unknown) {
     console.error(error);
+
+    if (error instanceof HttpsError && error.code === "already-exists") {
+      return sendJson(res, 409, {
+        success: false,
+        field: "E-mail",
+        message: "E-mail já está cadastrado",
+      });
+    }
+
     return sendJson(res, 500, {
       success: false,
-      message: "Erro ao criar usuário.",
+      message: "Erro interno ao realizar o cadastro. Tente novamente.",
     });
   }
 });

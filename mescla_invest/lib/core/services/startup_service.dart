@@ -1,6 +1,6 @@
 // Autor: Rafael Lanza de Queiroz
 // RA: 22010825
-// Descricao: Servico de startups que se comunica com o servidor Node.js
+// Descricao: Servico de startups que se comunica com Firebase Functions
 
 import 'dart:convert';
 
@@ -9,12 +9,13 @@ import 'package:http/http.dart' as http;
 import '../../models/startup_model.dart';
 
 class StartupService {
-  // Emulador Android - http://10.0.2.2:3000.
-  // Em dispositivo fisico - IP da maquina na rede local.
-  static const String _baseUrl = 'http://localhost:3000';
+  static const String _functionsBaseUrl = String.fromEnvironment(
+    'FUNCTIONS_BASE_URL',
+    defaultValue: 'http://localhost:5001/mesclainvest-d3745/us-central1',
+  );
 
   static Future<List<StartupModel>> listarStartups() async {
-    final data = await _getJson('/startups');
+    final data = await _getJson('startups-listStartups');
     final startupsJson = data['data'];
 
     if (startupsJson is! List) {
@@ -36,7 +37,10 @@ class StartupService {
       throw const StartupServiceException('ID da startup e obrigatorio.');
     }
 
-    final data = await _getJson('/startups/${Uri.encodeComponent(startupId)}');
+    final data = await _getJson(
+      'startups-getStartupById',
+      queryParameters: {'startupId': startupId},
+    );
     final startupJson = data['data'];
 
     if (startupJson is! Map) {
@@ -48,11 +52,14 @@ class StartupService {
     return StartupModel.fromJson(Map<String, dynamic>.from(startupJson));
   }
 
-  static Future<Map<String, dynamic>> _getJson(String endpoint) async {
+  static Future<Map<String, dynamic>> _getJson(
+    String functionName, {
+    Map<String, String>? queryParameters,
+  }) async {
     try {
       final response = await http
           .get(
-            Uri.parse('$_baseUrl$endpoint'),
+            _functionUri(functionName, queryParameters),
             headers: {'Content-Type': 'application/json'},
           )
           .timeout(const Duration(seconds: 15));
@@ -60,7 +67,7 @@ class StartupService {
       final decoded = jsonDecode(response.body);
 
       if (decoded is! Map) {
-        throw const StartupServiceException('Resposta invalida do servidor.');
+        throw const StartupServiceException('Resposta invalida das Functions.');
       }
 
       final data = Map<String, dynamic>.from(decoded);
@@ -69,7 +76,7 @@ class StartupService {
           response.statusCode >= 300 ||
           data['success'] != true) {
         throw StartupServiceException(
-          _extrairMensagem(data) ?? 'Erro ao buscar dados de startups.',
+          _extractMessage(data) ?? 'Erro ao buscar dados de startups.',
         );
       }
 
@@ -78,12 +85,21 @@ class StartupService {
       rethrow;
     } catch (_) {
       throw const StartupServiceException(
-        'Erro de conexao. Verifique se o servidor esta rodando.',
+        'Erro de conexao. Verifique se o emulador das Functions esta rodando.',
       );
     }
   }
 
-  static String? _extrairMensagem(Map<String, dynamic> data) {
+  static Uri _functionUri(
+    String functionName,
+    Map<String, String>? queryParameters,
+  ) {
+    return Uri.parse(
+      '$_functionsBaseUrl/$functionName',
+    ).replace(queryParameters: queryParameters);
+  }
+
+  static String? _extractMessage(Map<String, dynamic> data) {
     final message = data['message'];
     if (message == null) return null;
 

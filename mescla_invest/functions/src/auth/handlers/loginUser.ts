@@ -3,12 +3,16 @@
 // Descrição: Recebe a requisição http de logar usuário e trata ela
 
 import {onRequest} from "firebase-functions/v2/https";
-import {sendJson} from "../../shared/http";
-import {validateEmail} from "../../shared/validators";
+import {HttpsError} from "firebase-functions/https";
+import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {signInWithPassword} from "../repositories/authRepository";
 import {LoginBody} from "../types/authTypes";
 
 export const loginUser = onRequest(async (req, res) => {
+  if (handleCorsPreflight(req, res)) {
+    return;
+  }
+
   if (req.method !== "POST") {
     return sendJson(res, 405, {
       success: false,
@@ -16,19 +20,12 @@ export const loginUser = onRequest(async (req, res) => {
     });
   }
 
-  const {email, senha} = req.body as LoginBody;
+  const {email, senha} = (req.body ?? {}) as LoginBody;
 
   if (!email || !senha) {
     return sendJson(res, 400, {
       success: false,
-      message: "E-mail e senha são obrigatórios.",
-    });
-  }
-
-  if (!validateEmail(email)) {
-    return sendJson(res, 400, {
-      success: false,
-      message: "Email inválido",
+      message: "E-mail ou senha incorretos",
     });
   }
 
@@ -44,9 +41,16 @@ export const loginUser = onRequest(async (req, res) => {
   } catch (error) {
     console.error(error);
 
-    return sendJson(res, 404, {
+    if (error instanceof HttpsError && error.code === "unauthenticated") {
+      return sendJson(res, 401, {
+        success: false,
+        message: "E-mail ou senha incorretos",
+      });
+    }
+
+    return sendJson(res, 500, {
       success: false,
-      message: "Usuário não encontrado.",
+      message: "Erro interno ao realizar o login. Tente novamente.",
     });
   }
 });
