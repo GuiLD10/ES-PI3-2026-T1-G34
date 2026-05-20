@@ -51,7 +51,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
     try {
       final startups = await StartupService.listarStartups();
-
       if (!mounted) return;
       setState(() {
         _todasStartups = startups;
@@ -69,6 +68,16 @@ class _CatalogScreenState extends State<CatalogScreen> {
         _erro = 'Erro ao carregar startups.';
         _isLoading = false;
       });
+    }
+  }
+
+  void _onNavTap(int index) {
+    switch (index) {
+      case 0:
+        break;
+      case 1:
+        Navigator.pushReplacementNamed(context, AppRoutes.wallet);
+        break;
     }
   }
 
@@ -115,6 +124,29 @@ class _CatalogScreenState extends State<CatalogScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
+        onTap: _onNavTap,
+        backgroundColor: Colors.white,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textHint,
+        selectedLabelStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: const TextStyle(fontSize: 12),
+        elevation: 8,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.grid_view_rounded),
+            label: 'Catálogo',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_rounded),
+            label: 'Carteira',
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,13 +195,17 @@ class _CatalogScreenState extends State<CatalogScreen> {
             width: 100,
             fit: BoxFit.contain,
           ),
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: Colors.white,
-            child: Icon(
-              Icons.person,
-              color: AppColors.primary,
-              size: 20,
+          // Avatar navega para configurações
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.white,
+              child: Icon(
+                Icons.person,
+                color: AppColors.primary,
+                size: 20,
+              ),
             ),
           ),
         ],
