@@ -19,6 +19,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
   bool _isLoading = true;
   String? _erro;
   String? _startupId;
+  final TextEditingController _perguntaController = TextEditingController();
 
   @override
   void didChangeDependencies() {
@@ -66,6 +67,76 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
         _erro = 'Erro ao carregar detalhes da startup.';
         _isLoading = false;
       });
+    }
+  }
+
+  // Responsavel por enviar pergunta para a startup
+  Future<void> _enviarPergunta() async {
+
+    final startupId = _startupId;
+
+    if (startupId == null) {
+      return;
+    }
+
+    final body = {
+      'startupId': startupId,
+      'authorName': 'Henrique',
+      'question': _perguntaController.text,
+      'questionType': 'publica',
+    };
+
+    // MOSTRA NO CONSOLE
+    print(body);
+
+    try {
+
+      // Chama o service
+      await StartupService.criarPerguntaStartup(
+        startupId: startupId,
+
+        // Depois voce pode trocar pelo usuario logado
+        authorName: 'Henrique',
+
+        question: _perguntaController.text,
+
+        // publica ou privada
+        questionType: 'publica',
+      );
+
+      // Limpa o campo
+      _perguntaController.clear();
+
+      final body = {
+        'startupId': startupId,
+        'authorName': 'Henrique',
+        'question': _perguntaController.text,
+        'questionType': 'publica',
+      };
+
+      // MOSTRA NO CONSOLE
+      print(body);
+
+      // Atualiza os dados da startup
+      await _carregarStartup(startupId);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pergunta enviada com sucesso!'),
+        ),
+      );
+
+    } on StartupServiceException catch (e) {
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+        ),
+      );
     }
   }
 
@@ -201,6 +272,8 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
         _buildSocios(startup.socios),
         const SizedBox(height: 12),
         _buildMentores(startup.mentoresConselho),
+        const SizedBox(height: 12),
+        _buildFormularioPergunta(),
         const SizedBox(height: 12),
         _buildPerguntas(startup.perguntasRespostas),
         if (startup.videoDemo.isNotEmpty) ...[
@@ -436,6 +509,47 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     );
   }
 
+  Widget _buildFormularioPergunta() {
+    return _buildSecao(
+      titulo: 'Enviar pergunta',
+
+      child: Column(
+        children: [
+
+          // Campo da pergunta
+          TextField(
+            controller: _perguntaController,
+
+            maxLines: 4,
+
+            decoration: const InputDecoration(
+              hintText: 'Digite sua pergunta',
+              border: OutlineInputBorder(),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Botao de envio
+          SizedBox(
+            width: double.infinity,
+
+            child: ElevatedButton(
+              onPressed: _enviarPergunta,
+
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+
+              child: const Text('Enviar pergunta'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLinhaInfo({required String titulo, required String subtitulo}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -490,5 +604,11 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     }
 
     return buffer.toString();
+  }
+
+  @override
+  void dispose() {
+    _perguntaController.dispose();
+    super.dispose();
   }
 }

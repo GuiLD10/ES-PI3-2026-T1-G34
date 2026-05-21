@@ -4,3 +4,4 @@
 
 export {getStartupById} from "./handlers/getStartupById";
 export {listStartups} from "./handlers/listStartups";
+export {createStartupQuestion} from "./handlers/createStartupsQuestion";

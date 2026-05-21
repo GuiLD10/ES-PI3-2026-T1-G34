@@ -53,3 +53,4 @@ flutter_export_environment.sh
 firestore.indexes.json
 firestore.rules
 .firebase/
+firebase-data/
