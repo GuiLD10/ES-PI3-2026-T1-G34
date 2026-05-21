@@ -1,3 +1,5 @@
+export {cancelOrder} from "./handlers/cancelOrder";
+export {createOrder} from "./handlers/createOrder";
 export {getOrderBook} from "./handlers/getOrderBook";
 export {listMyOrders} from "./handlers/listMyOrders";
 export {
