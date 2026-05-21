@@ -41,11 +41,40 @@ class TransactionModel {
       ofertaVendaId: map['oferta_venda_id'] ?? '',
       mercado: map['mercado'] ?? '',
       quantidade: (map['quantidade'] ?? 0).toInt(),
-      valorUnitario: (map['valor_unitario'] ?? 0).toDouble(),
-      valorTotal: (map['valor_total'] ?? 0).toDouble(),
+      valorUnitario: _readMoney(
+        map,
+        centavosField: 'valor_unitario_centavos',
+        legacyField: 'valor_unitario',
+      ),
+      valorTotal: _readMoney(
+        map,
+        centavosField: 'valor_total_centavos',
+        legacyField: 'valor_total',
+      ),
       criadoEm: map['criado_em'] is Timestamp
           ? (map['criado_em'] as Timestamp).toDate()
           : DateTime.now(),
     );
   }
+}
+
+double _readMoney(
+  Map<String, dynamic> map, {
+  required String centavosField,
+  required String legacyField,
+}) {
+  if (map.containsKey(centavosField)) {
+    return _asDouble(map[centavosField]) / 100;
+  }
+
+  return _asDouble(map[legacyField]);
+}
+
+double _asDouble(dynamic value) {
+  if (value is int) return value.toDouble();
+  if (value is double) return value;
+  if (value is String) {
+    return double.tryParse(value.replaceAll(',', '.')) ?? 0;
+  }
+  return 0;
 }

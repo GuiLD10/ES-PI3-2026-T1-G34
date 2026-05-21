@@ -3,9 +3,9 @@
 // Descricao: Tela de Carteira do Investidor do MesclaInvest
 
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_routes.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/wallet_service.dart';
 import '../../models/wallet_model.dart';
 import '../../models/transaction_model.dart';
@@ -36,8 +36,8 @@ class _WalletScreenState extends State<WalletScreen> {
     });
 
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) throw WalletServiceException('Usuário não autenticado.');
+      final uid = AuthService.currentUid;
+      if (uid == null) throw WalletServiceException('Usuario nao autenticado.');
 
       final carteira = await WalletService.buscarCarteira(uid);
       final transacoes = await WalletService.buscarTransacoes(uid);
@@ -174,8 +174,8 @@ class _WalletScreenState extends State<WalletScreen> {
                           ),
                         )
                       : _erro != null
-                          ? _buildErro()
-                          : _buildConteudo(),
+                      ? _buildErro()
+                      : _buildConteudo(),
                 ),
               ),
             ),
@@ -323,10 +323,7 @@ class _WalletScreenState extends State<WalletScreen> {
               Center(
                 child: Text(
                   'Disponível no próximo escopo',
-                  style: TextStyle(
-                    color: AppColors.textHint,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(color: AppColors.textHint, fontSize: 13),
                 ),
               ),
               const SizedBox(height: 8),
@@ -367,7 +364,7 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Widget _buildTransacaoCard(TransactionModel transacao) {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = AuthService.currentUid ?? '';
     final isCompra = transacao.compradorUid == uid;
     final tipo = isCompra ? 'Compra' : 'Venda';
     final corTipo = isCompra ? Colors.green.shade700 : Colors.red.shade700;
@@ -396,17 +393,11 @@ class _WalletScreenState extends State<WalletScreen> {
               const SizedBox(height: 2),
               Text(
                 '${transacao.quantidade} tokens',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
               ),
               Text(
                 transacao.startupId,
-                style: TextStyle(
-                  color: AppColors.textHint,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: AppColors.textHint, fontSize: 12),
               ),
             ],
           ),
@@ -425,10 +416,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 '${transacao.criadoEm.day.toString().padLeft(2, '0')}/'
                 '${transacao.criadoEm.month.toString().padLeft(2, '0')}/'
                 '${transacao.criadoEm.year}',
-                style: TextStyle(
-                  color: AppColors.textHint,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: AppColors.textHint, fontSize: 12),
               ),
             ],
           ),

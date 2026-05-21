@@ -12,6 +12,12 @@ class AuthService {
     defaultValue: 'http://localhost:5001/mesclainvest-d3745/us-central1',
   );
 
+  static String? _uid;
+  static String? _token;
+
+  static String? get currentUid => _uid;
+  static bool get isAuthenticated => _token != null && _token!.isNotEmpty;
+
   static Future<Map<String, dynamic>> cadastrar({
     required String nome,
     required String email,
@@ -34,16 +40,40 @@ class AuthService {
     required String email,
     required String senha,
   }) async {
-    return _postJson('authentication-loginUser', {
+    final response = await _postJson('authentication-loginUser', {
       'email': email,
       'senha': senha,
     });
+
+    if (response['success'] == true) {
+      _storeSession(response);
+    }
+
+    return response;
   }
 
   static Future<Map<String, dynamic>> recuperarSenha({
     required String email,
   }) async {
     return _postJson('authentication-sendPasswordReset', {'email': email});
+  }
+
+  static Map<String, String> headersAutenticados() {
+    final token = _token;
+
+    if (token == null || token.isEmpty) {
+      throw const AuthServiceException('Usuario nao autenticado.');
+    }
+
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  static void clearSession() {
+    _uid = null;
+    _token = null;
   }
 
   static Future<Map<String, dynamic>> _postJson(
@@ -76,5 +106,28 @@ class AuthService {
             'Erro de conexão. Verifique se o emulador das Functions está rodando.',
       };
     }
+  }
+
+  static void _storeSession(Map<String, dynamic> response) {
+    final uid = response['uid']?.toString().trim();
+    final token = response['token']?.toString().trim();
+
+    if (uid == null || uid.isEmpty || token == null || token.isEmpty) {
+      return;
+    }
+
+    _uid = uid;
+    _token = token;
+  }
+}
+
+class AuthServiceException implements Exception {
+  final String message;
+
+  const AuthServiceException(this.message);
+
+  @override
+  String toString() {
+    return message;
   }
 }
