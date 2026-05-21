@@ -4,3 +4,4 @@
 
 export * as authentication from "./auth";
 export * as startups from "./startups";
+export * as wallet from "./wallet";

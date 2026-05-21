@@ -29,6 +29,10 @@ export async function saveUserProfile(uid: string, data: RegisterBody) {
     email: data.email.trim(),
     cpf: data.cpf.replace(/\D/g, ""),
     telefone: data.telefone.replace(/\D/g, ""),
+    saldo_disponivel: 0,
+    saldo_disponivel_centavos: 0,
+    saldo_bloqueado: 0,
+    saldo_bloqueado_centavos: 0,
     criadoEm: fieldValue.serverTimestamp(),
   });
 }

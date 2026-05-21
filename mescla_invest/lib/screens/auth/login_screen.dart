@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/session_manager.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,6 +42,11 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (resultado['success'] == true) {
+      // Salva o UID e token retornados pela Function
+      final uid = resultado['uid'] as String? ?? '';
+      final token = resultado['token'] as String? ?? '';
+      SessionManager.salvarSessao(uid: uid, token: token);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(resultado['message'] ?? 'Login realizado com sucesso!'),

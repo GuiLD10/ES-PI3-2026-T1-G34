@@ -1,8 +1,9 @@
 // Autor: Artur Henrique Pagno
 // RA: 21013037
-// Descricao: Service de carteira - busca dados do usuario e transacoes no Firestore
+// Descricao: Service de carteira - comunica com Firebase Functions
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../../../models/wallet_model.dart';
 import '../../../models/transaction_model.dart';
 
@@ -12,68 +13,105 @@ class WalletServiceException implements Exception {
 }
 
 class WalletService {
-  static final _db = FirebaseFirestore.instance;
+  static const String _functionsBaseUrl = String.fromEnvironment(
+    'FUNCTIONS_BASE_URL',
+    defaultValue: 'http://localhost:5001/mesclainvest-d3745/us-central1',
+  );
 
-  // Busca saldo e dados da carteira do usuário
   static Future<WalletModel> buscarCarteira(String uid) async {
-    try {
-      final doc = await _db.collection('usuarios').doc(uid).get();
+    final data = await _getJson(
+      'wallet-getWallet',
+      queryParameters: {'uid': uid},
+    );
+    final walletJson = data['data'];
 
-      if (!doc.exists || doc.data() == null) {
-        throw WalletServiceException('Carteira não encontrada.');
+    if (walletJson is! Map) {
+      throw WalletServiceException('Resposta inválida ao buscar carteira.');
+    }
+
+    return WalletModel.fromMap(uid, Map<String, dynamic>.from(walletJson));
+  }
+
+  static Future<List<TransactionModel>> buscarTransacoes(String uid) async {
+    final data = await _getJson(
+      'wallet-getTransacoes',
+      queryParameters: {'uid': uid},
+    );
+    final transacoesJson = data['data'];
+
+    if (transacoesJson is! List) {
+      throw WalletServiceException('Resposta inválida ao buscar transações.');
+    }
+
+    return transacoesJson
+        .whereType<Map>()
+        .map((item) {
+          final map = Map<String, dynamic>.from(item);
+          final id = map['id'] as String? ?? '';
+          return TransactionModel.fromMap(id, map);
+        })
+        .toList();
+  }
+
+  static Future<Map<String, dynamic>> _getJson(
+    String functionName, {
+    Map<String, String>? queryParameters,
+  }) async {
+    try {
+      print('[WalletService] Chamando: $_functionsBaseUrl/$functionName?$queryParameters');
+
+      final response = await http
+          .get(
+            _functionUri(functionName, queryParameters),
+            headers: {'Content-Type': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 15));
+
+      print('[WalletService] Status: ${response.statusCode}');
+      print('[WalletService] Resposta: ${response.body}');
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! Map) {
+        throw WalletServiceException('Resposta inválida das Functions.');
       }
 
-      return WalletModel.fromMap(uid, doc.data()!);
+      final data = Map<String, dynamic>.from(decoded);
+
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          data['success'] != true) {
+        throw WalletServiceException(
+          _extractMessage(data) ?? 'Erro ao buscar dados da carteira.',
+        );
+      }
+
+      return data;
     } on WalletServiceException {
       rethrow;
-    } catch (e) {
-      throw WalletServiceException('Erro ao buscar carteira: $e');
+    } catch (e, stackTrace) {
+      print('[WalletService] Erro: $e');
+      print('[WalletService] Stack: $stackTrace');
+      throw WalletServiceException(
+        'Erro de conexão. Verifique se o emulador das Functions está rodando.',
+      );
     }
   }
 
-  // Busca transações do usuário (como comprador ou vendedor)
-  static Future<List<TransactionModel>> buscarTransacoes(String uid) async {
-  try {
-    final compras = await _db
-        .collection('transacoes')
-        .where('comprador_uid', isEqualTo: uid)
-        .get(); // removido orderBy
-
-    final vendas = await _db
-        .collection('transacoes')
-        .where('vendedor_uid', isEqualTo: uid)
-        .get(); // removido orderBy
-
-    final todasTransacoes = [
-      ...compras.docs.map((d) => TransactionModel.fromMap(d.id, d.data())),
-      ...vendas.docs.map((d) => TransactionModel.fromMap(d.id, d.data())),
-    ];
-
-    todasTransacoes.sort((a, b) => b.criadoEm.compareTo(a.criadoEm));
-
-    return todasTransacoes;
-  } catch (e) {
-    print('ERRO TRANSACOES: $e');
-    throw WalletServiceException('Erro ao buscar transações: $e');
+  static Uri _functionUri(
+    String functionName,
+    Map<String, String>? queryParameters,
+  ) {
+    return Uri.parse(
+      '$_functionsBaseUrl/$functionName',
+    ).replace(queryParameters: queryParameters);
   }
-}
 
-  // Busca ofertas abertas ou parciais do usuário
-  static Future<List<Map<String, dynamic>>> buscarOfertasAtivas(
-      String uid) async {
-    try {
-      final snapshot = await _db
-          .collection('ofertas')
-          .where('usuario_uid', isEqualTo: uid)
-          .where('status', whereIn: ['aberta', 'parcial'])
-          .orderBy('criado_em', descending: true)
-          .get();
+  static String? _extractMessage(Map<String, dynamic> data) {
+    final message = data['message'];
+    if (message == null) return null;
 
-      return snapshot.docs
-          .map((d) => {'id': d.id, ...d.data()})
-          .toList();
-    } catch (e) {
-      throw WalletServiceException('Erro ao buscar ofertas: $e');
-    }
+    final text = message.toString().trim();
+    return text.isEmpty ? null : text;
   }
 }

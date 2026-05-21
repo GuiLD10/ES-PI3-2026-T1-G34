@@ -3,7 +3,7 @@
 // Descricao: Tela de Carteira do Investidor do MesclaInvest
 
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../core/services/session_manager.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_routes.dart';
 import '../../core/services/wallet_service.dart';
@@ -36,11 +36,20 @@ class _WalletScreenState extends State<WalletScreen> {
     });
 
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) throw WalletServiceException('Usuário não autenticado.');
+      final uid = SessionManager.uid;
 
+      print('[WalletScreen] UID do usuário: $uid');
+
+      if (uid == null || uid.isEmpty) {
+        throw WalletServiceException('Usuário não autenticado.');
+      }
+
+      print('[WalletScreen] Carregando carteira e transações...');
       final carteira = await WalletService.buscarCarteira(uid);
       final transacoes = await WalletService.buscarTransacoes(uid);
+
+      print('[WalletScreen] Carteira: ${carteira.patrimonioTotal}');
+      print('[WalletScreen] Transações: ${transacoes.length}');
 
       if (!mounted) return;
       setState(() {
@@ -49,12 +58,15 @@ class _WalletScreenState extends State<WalletScreen> {
         _isLoading = false;
       });
     } on WalletServiceException catch (e) {
+      print('❌ [WalletScreen] Erro: ${e.message}');
       if (!mounted) return;
       setState(() {
         _erro = e.message;
         _isLoading = false;
       });
-    } catch (_) {
+    } catch (e, stackTrace) {
+      print('❌ [WalletScreen] Erro desconhecido: $e');
+      print('❌ [WalletScreen] Stack: $stackTrace');
       if (!mounted) return;
       setState(() {
         _erro = 'Erro ao carregar carteira.';
@@ -322,7 +334,7 @@ class _WalletScreenState extends State<WalletScreen> {
               const SizedBox(height: 12),
               Center(
                 child: Text(
-                  'Disponível no próximo escopo',
+                  'Em breve',
                   style: TextStyle(
                     color: AppColors.textHint,
                     fontSize: 13,
@@ -367,7 +379,7 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Widget _buildTransacaoCard(TransactionModel transacao) {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = SessionManager.uid ?? '';
     final isCompra = transacao.compradorUid == uid;
     final tipo = isCompra ? 'Compra' : 'Venda';
     final corTipo = isCompra ? Colors.green.shade700 : Colors.red.shade700;
