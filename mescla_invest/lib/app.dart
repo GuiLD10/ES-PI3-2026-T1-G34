@@ -10,6 +10,7 @@ import 'screens/splash/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
+import 'screens/balcao/balcao_screen.dart';
 import 'screens/catalog/catalog_screen.dart';
 import 'screens/catalog/startup_detail_screen.dart';
 import 'screens/profile/screen_profile.dart';
@@ -26,14 +27,15 @@ class App extends StatelessWidget {
       // theme: null removido por enquanto
       initialRoute: AppRoutes.splash,
       routes: {
-        AppRoutes.splash:             (_) => const SplashScreen(),
-        AppRoutes.login:              (_) => const LoginScreen(),
-        AppRoutes.register:           (_) => const RegisterScreen(),
-        AppRoutes.forgotPassword:     (_) => const ForgotPasswordScreen(),
-        AppRoutes.catalog:            (_) => const CatalogScreen(),
-        AppRoutes.startupDetail:      (_) => const StartupDetailScreen(),
-        AppRoutes.profile:            (_) => const ProfileScreen(),
-        AppRoutes.wallet:             (_) => const WalletScreen(),
+        AppRoutes.splash: (_) => const SplashScreen(),
+        AppRoutes.login: (_) => const LoginScreen(),
+        AppRoutes.register: (_) => const RegisterScreen(),
+        AppRoutes.forgotPassword: (_) => const ForgotPasswordScreen(),
+        AppRoutes.catalog: (_) => const CatalogScreen(),
+        AppRoutes.startupDetail: (_) => const StartupDetailScreen(),
+        AppRoutes.balcao: (_) => const BalcaoScreen(),
+        AppRoutes.profile: (_) => const ProfileScreen(),
+        AppRoutes.wallet: (_) => const WalletScreen(),
       },
     );
   }
