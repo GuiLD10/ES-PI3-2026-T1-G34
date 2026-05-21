@@ -1,3 +1,6 @@
+// Autor: Rafael Lanza de Queiroz
+// RA: 22010825
+
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';

@@ -6,6 +6,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'session_manager.dart';
+
 class AuthService {
   static const String _functionsBaseUrl = String.fromEnvironment(
     'FUNCTIONS_BASE_URL',
@@ -15,8 +17,11 @@ class AuthService {
   static String? _uid;
   static String? _token;
 
-  static String? get currentUid => _uid;
-  static bool get isAuthenticated => _token != null && _token!.isNotEmpty;
+  static String? get currentUid => _uid ?? SessionManager.uid;
+  static bool get isAuthenticated {
+    final token = _token ?? SessionManager.token;
+    return token != null && token.isNotEmpty;
+  }
 
   static Future<Map<String, dynamic>> cadastrar({
     required String nome,
@@ -59,7 +64,7 @@ class AuthService {
   }
 
   static Map<String, String> headersAutenticados() {
-    final token = _token;
+    final token = _token ?? SessionManager.token;
 
     if (token == null || token.isEmpty) {
       throw const AuthServiceException('Usuario nao autenticado.');
@@ -74,6 +79,7 @@ class AuthService {
   static void clearSession() {
     _uid = null;
     _token = null;
+    SessionManager.limparSessao();
   }
 
   static Future<Map<String, dynamic>> _postJson(
@@ -118,6 +124,7 @@ class AuthService {
 
     _uid = uid;
     _token = token;
+    SessionManager.salvarSessao(uid: uid, token: token);
   }
 }
 

@@ -7,8 +7,8 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_routes.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/wallet_service.dart';
-import '../../models/wallet_model.dart';
 import '../../models/transaction_model.dart';
+import '../../models/wallet_model.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -37,7 +37,9 @@ class _WalletScreenState extends State<WalletScreen> {
 
     try {
       final uid = AuthService.currentUid;
-      if (uid == null) throw WalletServiceException('Usuario nao autenticado.');
+      if (uid == null || uid.isEmpty) {
+        throw WalletServiceException('Usuario nao autenticado.');
+      }
 
       final carteira = await WalletService.buscarCarteira(uid);
       final transacoes = await WalletService.buscarTransacoes(uid);
@@ -69,7 +71,6 @@ class _WalletScreenState extends State<WalletScreen> {
         Navigator.pushReplacementNamed(context, AppRoutes.catalog);
         break;
       case 1:
-        // já está na carteira
         break;
     }
   }
@@ -97,7 +98,7 @@ class _WalletScreenState extends State<WalletScreen> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.grid_view_rounded),
-            label: 'Catálogo',
+            label: 'Catalogo',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.account_balance_wallet_rounded),
@@ -110,8 +111,6 @@ class _WalletScreenState extends State<WalletScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 24),
-
-            // Header: logo + avatar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Row(
@@ -138,10 +137,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 24),
-
-            // Título
             Center(
               child: Text(
                 'Carteira do Investidor',
@@ -152,10 +148,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 16),
-
-            // Conteúdo
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _carregarDados,
@@ -221,7 +214,6 @@ class _WalletScreenState extends State<WalletScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Card de saldo
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
@@ -233,9 +225,9 @@ class _WalletScreenState extends State<WalletScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Patrimônio Total',
+                'Patrimonio Total',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 13,
                 ),
               ),
@@ -256,9 +248,9 @@ class _WalletScreenState extends State<WalletScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Disponível',
+                        'Disponivel',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 12,
                         ),
                       ),
@@ -278,7 +270,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       Text(
                         'Bloqueado',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 12,
                         ),
                       ),
@@ -297,10 +289,7 @@ class _WalletScreenState extends State<WalletScreen> {
             ],
           ),
         ),
-
         const SizedBox(height: 24),
-
-        // Placeholder gráfico — próximo escopo
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
@@ -312,7 +301,7 @@ class _WalletScreenState extends State<WalletScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Gráfico de Valorização',
+                'Grafico de Valorizacao',
                 style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 14,
@@ -322,7 +311,7 @@ class _WalletScreenState extends State<WalletScreen> {
               const SizedBox(height: 12),
               Center(
                 child: Text(
-                  'Disponível no próximo escopo',
+                  'Em breve',
                   style: TextStyle(color: AppColors.textHint, fontSize: 13),
                 ),
               ),
@@ -330,34 +319,28 @@ class _WalletScreenState extends State<WalletScreen> {
             ],
           ),
         ),
-
         const SizedBox(height: 24),
-
-        // Histórico de transações
         Text(
-          'Histórico de Transações',
+          'Historico de Transacoes',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
         ),
-
         const SizedBox(height: 8),
-
         if (_transacoes.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 16),
             child: Center(
               child: Text(
-                'Nenhuma transação realizada.',
+                'Nenhuma transacao realizada.',
                 style: TextStyle(color: AppColors.textHint, fontSize: 14),
               ),
             ),
           )
         else
           ..._transacoes.map((t) => _buildTransacaoCard(t)),
-
         const SizedBox(height: 24),
       ],
     );

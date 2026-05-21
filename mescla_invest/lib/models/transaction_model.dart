@@ -2,8 +2,6 @@
 // RA: 21013037
 // Descricao: Model de dados de transacao
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class TransactionModel {
   final String id;
   final String startupId;
@@ -33,14 +31,14 @@ class TransactionModel {
 
   factory TransactionModel.fromMap(String id, Map<String, dynamic> map) {
     return TransactionModel(
-      id: id,
-      startupId: map['startup_id'] ?? '',
-      compradorUid: map['comprador_uid'] ?? '',
-      vendedorUid: map['vendedor_uid'] ?? '',
-      ofertaCompraId: map['oferta_compra_id'] ?? '',
-      ofertaVendaId: map['oferta_venda_id'] ?? '',
-      mercado: map['mercado'] ?? '',
-      quantidade: (map['quantidade'] ?? 0).toInt(),
+      id: id.isNotEmpty ? id : _asString(map['id']),
+      startupId: _asString(map['startup_id']),
+      compradorUid: _asString(map['comprador_uid']),
+      vendedorUid: _asString(map['vendedor_uid']),
+      ofertaCompraId: _asString(map['oferta_compra_id']),
+      ofertaVendaId: _asString(map['oferta_venda_id']),
+      mercado: _asString(map['mercado']),
+      quantidade: _asInt(map['quantidade']),
       valorUnitario: _readMoney(
         map,
         centavosField: 'valor_unitario_centavos',
@@ -51,9 +49,7 @@ class TransactionModel {
         centavosField: 'valor_total_centavos',
         legacyField: 'valor_total',
       ),
-      criadoEm: map['criado_em'] is Timestamp
-          ? (map['criado_em'] as Timestamp).toDate()
-          : DateTime.now(),
+      criadoEm: _readDateTime(map['criado_em']),
     );
   }
 }
@@ -68,6 +64,32 @@ double _readMoney(
   }
 
   return _asDouble(map[legacyField]);
+}
+
+DateTime _readDateTime(dynamic value) {
+  if (value is DateTime) return value;
+  if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+
+  if (value is Map) {
+    final seconds = value['_seconds'] ?? value['seconds'];
+    if (seconds is int) {
+      return DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+    }
+  }
+
+  return DateTime.now();
+}
+
+String _asString(dynamic value) {
+  if (value == null) return '';
+  return value.toString();
+}
+
+int _asInt(dynamic value) {
+  if (value is int) return value;
+  if (value is double) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? 0;
+  return 0;
 }
 
 double _asDouble(dynamic value) {

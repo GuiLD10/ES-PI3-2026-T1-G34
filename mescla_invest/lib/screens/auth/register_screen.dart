@@ -250,7 +250,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             disabledBackgroundColor: AppColors.primary
-                                .withOpacity(0.5),
+                                .withValues(alpha: 0.5),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),

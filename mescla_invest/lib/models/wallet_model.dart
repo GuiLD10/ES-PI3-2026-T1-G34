@@ -1,3 +1,7 @@
+// Autor: Artur Henrique Pagno
+// RA: 21013037
+// Descricao: Model de dados da carteira do usuario
+
 class WalletModel {
   final String uid;
   final double saldoDisponivel;
