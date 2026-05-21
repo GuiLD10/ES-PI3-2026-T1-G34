@@ -6,6 +6,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../session/user_session.dart';
+
 class AuthService {
   static const String _functionsBaseUrl = String.fromEnvironment(
     'FUNCTIONS_BASE_URL',
@@ -20,7 +22,7 @@ class AuthService {
     required String senha,
     required String confirmarSenha,
   }) async {
-    return _postJson('authentication-registerUser', {
+    final response = await _postJson('authentication-registerUser', {
       'nome': nome,
       'email': email,
       'cpf': cpf,
@@ -28,16 +30,35 @@ class AuthService {
       'senha': senha,
       'confirmarSenha': confirmarSenha,
     });
+
+    if (response['success'] == true) {
+
+      UserSession.nome = nome;
+
+      UserSession.email = email;
+
+    }
+
+    return response;
+
   }
 
   static Future<Map<String, dynamic>> login({
     required String email,
     required String senha,
   }) async {
-    return _postJson('authentication-loginUser', {
+    final response = await _postJson('authentication-loginUser', {
       'email': email,
       'senha': senha,
     });
+    if (response['success'] == true) {
+
+      UserSession.nome = response['nome'];
+
+      UserSession.email = response['email'];
+
+    }
+    return response;
   }
 
   static Future<Map<String, dynamic>> recuperarSenha({

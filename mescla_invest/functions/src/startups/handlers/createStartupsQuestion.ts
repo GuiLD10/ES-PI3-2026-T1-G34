@@ -4,8 +4,8 @@
 
 import {onRequest} from "firebase-functions/v2/https";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
-import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
+import { findStartupById , findStartupRef} from "../repositories/startupRepository";
 
 export const createStartupQuestion = onRequest(async (req, res) => {
 
@@ -55,10 +55,8 @@ export const createStartupQuestion = onRequest(async (req, res) => {
   }
 
   try {
-    const db = admin.firestore();
 
-    // Documento da startup
-    const startupRef = db.collection("startups").doc(startupId);
+    const startupRef = await findStartupRef(startupId);
 
     const startupDoc = await startupRef.get();
 
@@ -82,7 +80,7 @@ export const createStartupQuestion = onRequest(async (req, res) => {
       createdAt: new Date().toISOString(),
 
       // seção de respostas
-      resposta: ["resposta padrão para teste"],
+      resposta: [{resposta:"resposta padrão para teste" , nome_autor: "Henrique" , id: crypto.randomUUID()}],
     };
 
     // adiciona no array "questions"

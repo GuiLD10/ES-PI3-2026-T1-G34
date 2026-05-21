@@ -120,23 +120,55 @@ class MentorConselhoModel {
 
 class PerguntaRespostaModel {
   final String pergunta;
-  final String resposta;
+  final List<RespostaModel> respostas;
   final String autor;
   final String? criadoEm;
 
   PerguntaRespostaModel({
     required this.pergunta,
-    required this.resposta,
+    required this.respostas,
     required this.autor,
     this.criadoEm,
   });
-
   factory PerguntaRespostaModel.fromJson(Map<String, dynamic> json) {
+
+    final rawRespostas = json['resposta'];
+
+    List<RespostaModel> respostasConvertidas = [];
+
+    if (rawRespostas is List) {
+      respostasConvertidas = rawRespostas
+          .whereType<Map>()
+          .map((item) => RespostaModel.fromMap(
+        Map<String, dynamic>.from(item),
+      ))
+          .toList();
+    }
+
     return PerguntaRespostaModel(
       pergunta: _asString(json['pergunta']),
-      resposta: _asString(json['resposta']),
+
+      respostas: respostasConvertidas,
+
       autor: _asString(json['autor']),
       criadoEm: _asNullableString(json['criado_em']),
+    );
+  }
+}
+
+class RespostaModel {
+  final String nome;
+  final String resposta;
+
+  RespostaModel({
+    required this.nome,
+    required this.resposta,
+  });
+
+  factory RespostaModel.fromMap(Map<String, dynamic> map) {
+    return RespostaModel(
+      nome: map['nome_autor'] ?? '',
+      resposta: map['resposta'] ?? '',
     );
   }
 }

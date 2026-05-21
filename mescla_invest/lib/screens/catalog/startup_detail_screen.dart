@@ -3,6 +3,7 @@
 // Descricao: Tela de detalhes de uma startup do MesclaInvest
 
 import 'package:flutter/material.dart';
+import '../../core/session/user_session.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/startup_service.dart';
 import '../../models/startup_model.dart';
@@ -79,43 +80,20 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
       return;
     }
 
-    final body = {
-      'startupId': startupId,
-      'authorName': 'Henrique',
-      'question': _perguntaController.text,
-      'questionType': 'publica',
-    };
-
-    // MOSTRA NO CONSOLE
-    print(body);
-
     try {
 
-      // Chama o service
       await StartupService.criarPerguntaStartup(
         startupId: startupId,
 
-        // Depois voce pode trocar pelo usuario logado
-        authorName: 'Henrique',
+        authorName: UserSession.nome,
 
         question: _perguntaController.text,
 
-        // publica ou privada
         questionType: 'publica',
       );
 
       // Limpa o campo
       _perguntaController.clear();
-
-      final body = {
-        'startupId': startupId,
-        'authorName': 'Henrique',
-        'question': _perguntaController.text,
-        'questionType': 'publica',
-      };
-
-      // MOSTRA NO CONSOLE
-      print(body);
 
       // Atualiza os dados da startup
       await _carregarStartup(startupId);
@@ -479,28 +457,82 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
       titulo: 'Perguntas e respostas',
       child: Column(
         children: perguntas.map((item) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.all(12),
+
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(8),
+            ),
+
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+
+                // PERGUNTA
                 Text(
                   item.pergunta,
                   style: TextStyle(
                     color: AppColors.textPrimary,
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  item.resposta,
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 13,
-                    height: 1.3,
+
+                const SizedBox(height: 12),
+
+                // RESPOSTAS
+                if (item.respostas.isEmpty)
+                  Text(
+                    'Nenhuma resposta ainda.',
+                    style: TextStyle(
+                      color: AppColors.textHint,
+                      fontSize: 13,
+                    ),
                   ),
-                ),
+
+                ...item.respostas.map((resposta) {
+                  return Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(10),
+
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8E8E8),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+
+                        // NOME
+                        Text(
+                          resposta.nome,
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        // RESPOSTA
+                        Text(
+                          resposta.resposta,
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
               ],
             ),
           );

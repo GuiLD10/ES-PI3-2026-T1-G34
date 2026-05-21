@@ -20,3 +20,7 @@ export async function listActiveStartups(): Promise<StartupData[]> {
 export async function findStartupById(startupId: string) {
   return await db.collection("startups").doc(startupId).get();
 }
+
+export async function findStartupRef( startupid : string) {
+  return await db.collection("startups").doc(startupid);
+}
