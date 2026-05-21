@@ -3,4 +3,5 @@
 // Descrição: index functions
 
 export * as authentication from "./auth";
+export * as exchange from "./exchange";
 export * as startups from "./startups";
