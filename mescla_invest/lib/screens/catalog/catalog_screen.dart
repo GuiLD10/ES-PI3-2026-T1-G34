@@ -31,6 +31,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   String _busca = '';
 
+  // Índice da aba selecionada na navbar: 0 = Catálogo, 1 = Carteira, 2 = Configurações
+  int _navIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +72,20 @@ class _CatalogScreenState extends State<CatalogScreen> {
         _erro = 'Erro ao carregar startups.';
         _isLoading = false;
       });
+    }
+  }
+
+  void _onNavTap(int index) {
+    if (index == _navIndex) return;
+    setState(() => _navIndex = index);
+
+    switch (index) {
+      case 1:
+        Navigator.pushNamed(context, AppRoutes.wallet);
+        break;
+      case 2:
+        Navigator.pushNamed(context, AppRoutes.settings);
+        break;
     }
   }
 
@@ -148,6 +165,35 @@ class _CatalogScreenState extends State<CatalogScreen> {
             ),
           ],
         ),
+      ),
+
+      // Navbar inferior
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _navIndex,
+        onTap: _onNavTap,
+        backgroundColor: Colors.white,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textHint,
+        selectedLabelStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: const TextStyle(fontSize: 12),
+        elevation: 8,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.grid_view_rounded),
+            label: 'Catálogo',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_rounded),
+            label: 'Carteira',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings_rounded),
+            label: 'Configurações',
+          ),
+        ],
       ),
     );
   }

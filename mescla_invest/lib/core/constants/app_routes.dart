@@ -9,4 +9,7 @@ class AppRoutes {
   static const forgotPassword = '/forgot-password';
   static const catalog        = '/catalog';
   static const startupDetail  = '/startup-detail';
+  static const balcao         = '/balcao';
+  static const settings       = '/settings';
+  static const wallet         = '/wallet';
 }

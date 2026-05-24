@@ -3,6 +3,7 @@
 // Descricao: Tela de detalhes de uma startup do MesclaInvest
 
 import 'package:flutter/material.dart';
+import '../../core/constants/app_routes.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/startup_service.dart';
 import '../../models/startup_model.dart';
@@ -185,6 +186,8 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildResumo(startup),
+        const SizedBox(height: 12),
+        _buildBalcaoButton(startup),
         const SizedBox(height: 16),
         _buildSecao(
           titulo: 'Descricao',
@@ -218,6 +221,32 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildBalcaoButton(StartupModel startup) {
+    return SizedBox(
+      width: double.infinity,
+      height: 42,
+      child: ElevatedButton.icon(
+        onPressed: () {
+          Navigator.pushNamed(
+            context,
+            AppRoutes.balcao,
+            arguments: startup.id,
+          );
+        },
+        icon: const Icon(Icons.show_chart, size: 18),
+        label: const Text('Balcao de ofertas'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          elevation: 0,
+        ),
+      ),
     );
   }
 

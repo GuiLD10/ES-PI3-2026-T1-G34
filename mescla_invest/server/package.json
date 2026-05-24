@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "dotenv": "^16.4.5",
-    "firebase-admin": "^12.1.0",
+    "firebase-admin": "^13.9.0",
     "node-fetch": "^2.7.0"
   },
   "devDependencies": {
