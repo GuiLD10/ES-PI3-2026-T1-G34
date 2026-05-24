@@ -53,6 +53,48 @@ class WalletService {
         .toList();
   }
 
+  static Future<void> adicionarSaldo(String uid, double valor) async {
+    try {
+      print('[WalletService] Adicionando saldo: R\$ $valor para uid: $uid');
+
+      final uri = Uri.parse('$_functionsBaseUrl/wallet-adicionarSaldo');
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'uid': uid, 'valor': valor}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      print('[WalletService] Status: ${response.statusCode}');
+      print('[WalletService] Resposta: ${response.body}');
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! Map) {
+        throw WalletServiceException('Resposta inválida das Functions.');
+      }
+
+      final data = Map<String, dynamic>.from(decoded);
+
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300 ||
+          data['success'] != true) {
+        throw WalletServiceException(
+          _extractMessage(data) ?? 'Erro ao adicionar saldo.',
+        );
+      }
+    } on WalletServiceException {
+      rethrow;
+    } catch (e, stackTrace) {
+      print('[WalletService] Erro: $e');
+      print('[WalletService] Stack: $stackTrace');
+      throw WalletServiceException(
+        'Erro de conexão. Verifique se o emulador das Functions está rodando.',
+      );
+    }
+  }
+
   static Future<Map<String, dynamic>> _getJson(
     String functionName, {
     Map<String, String>? queryParameters,

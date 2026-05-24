@@ -3,4 +3,5 @@
 // Descrição: index wallet
 
 export { getWallet } from "./handlers/getWallet";
-export { getTransacoes } from "./handlers/getTransacoes";''
+export { getTransacoes } from "./handlers/getTransacoes";
+export { adicionarSaldo } from "./handlers/adicionarSaldo";

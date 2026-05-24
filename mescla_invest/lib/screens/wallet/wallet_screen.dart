@@ -2,7 +2,9 @@
 // RA: 21013037
 // Descricao: Tela de Carteira do Investidor do MesclaInvest
 
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/services/session_manager.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_routes.dart';
@@ -23,10 +25,24 @@ class _WalletScreenState extends State<WalletScreen> {
   bool _isLoading = true;
   String? _erro;
 
+  // Adicionar saldo
+  final TextEditingController _valorController = TextEditingController();
+  bool _mostrandoQrCode = false;
+  int _segundosRestantes = 0;
+  Timer? _timer;
+  bool _adicionandoSaldo = false;
+
   @override
   void initState() {
     super.initState();
     _carregarDados();
+  }
+
+  @override
+  void dispose() {
+    _valorController.dispose();
+    _timer?.cancel();
+    super.dispose();
   }
 
   Future<void> _carregarDados() async {
@@ -72,6 +88,104 @@ class _WalletScreenState extends State<WalletScreen> {
         _erro = 'Erro ao carregar carteira.';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _adicionarSaldo() async {
+    final texto = _valorController.text.trim().replaceAll(',', '.');
+    final valor = double.tryParse(texto);
+
+    if (valor == null || valor <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Insira um valor válido maior que zero.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final uid = SessionManager.uid;
+    if (uid == null || uid.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Usuário não autenticado.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Mostrar QR Code com timer de 10 segundos
+    setState(() {
+      _mostrandoQrCode = true;
+      _segundosRestantes = 10;
+      _adicionandoSaldo = true;
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _segundosRestantes--;
+      });
+
+      if (_segundosRestantes <= 0) {
+        timer.cancel();
+        _finalizarAdicaoSaldo(uid, valor);
+      }
+    });
+  }
+
+  Future<void> _finalizarAdicaoSaldo(String uid, double valor) async {
+    try {
+      await WalletService.adicionarSaldo(uid, valor);
+
+      if (!mounted) return;
+
+      setState(() {
+        _mostrandoQrCode = false;
+        _adicionandoSaldo = false;
+        _valorController.clear();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Saldo de ${_formatarReais(valor)} adicionado com sucesso!',
+          ),
+          backgroundColor: Colors.green.shade700,
+        ),
+      );
+
+      // Recarregar dados para atualizar o saldo na tela
+      await _carregarDados();
+    } on WalletServiceException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _mostrandoQrCode = false;
+        _adicionandoSaldo = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _mostrandoQrCode = false;
+        _adicionandoSaldo = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro ao adicionar saldo. Tente novamente.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -312,6 +426,11 @@ class _WalletScreenState extends State<WalletScreen> {
 
         const SizedBox(height: 24),
 
+        // Seção: Adicionar Saldo
+        _buildAdicionarSaldo(),
+
+        const SizedBox(height: 24),
+
         // Placeholder gráfico — próximo escopo
         Container(
           width: double.infinity,
@@ -375,6 +494,163 @@ class _WalletScreenState extends State<WalletScreen> {
 
         const SizedBox(height: 24),
       ],
+    );
+  }
+
+  Widget _buildAdicionarSaldo() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFDDE4F0),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Adicionar Saldo',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Se estiver mostrando o QR Code
+          if (_mostrandoQrCode) ...[
+            Center(
+              child: Column(
+                children: [
+                  Text(
+                    'Escaneie o QR Code para pagar',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Image.asset(
+                      'assets/images/qr_code.png',
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Timer circular
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          value: _segundosRestantes / 10,
+                          strokeWidth: 3,
+                          color: AppColors.primary,
+                          backgroundColor: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Processando em $_segundosRestantes segundos...',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            // Campo de valor e botão
+            TextField(
+              controller: _valorController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[\d,.]')),
+              ],
+              decoration: InputDecoration(
+                hintText: 'Ex: 100,00',
+                hintStyle: TextStyle(
+                  color: AppColors.textHint,
+                  fontSize: 14,
+                ),
+                prefixText: 'R\$ ',
+                prefixStyle: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: AppColors.primary,
+                    width: 2,
+                  ),
+                ),
+              ),
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: _adicionandoSaldo ? null : _adicionarSaldo,
+                icon: const Icon(Icons.add_circle_outline, size: 20),
+                label: const Text(
+                  'Adicionar saldo',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: AppColors.primary.withOpacity(0.5),
+                  disabledForegroundColor: Colors.white70,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

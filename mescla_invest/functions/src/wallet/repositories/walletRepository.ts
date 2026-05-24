@@ -2,7 +2,7 @@
 // RA: 21013037
 // Descrição: Repositório de acesso ao Firestore para dados da carteira
 
-import { db } from "../../shared/firebase";
+import { db, fieldValue } from "../../shared/firebase";
 import { mapWalletDocument, mapTransacaoDocument } from "../shared/walletMapper";
 import { convertFirestoreValue } from "../../shared/firestoreConverters";
 import { WalletData, TransacaoData } from "../types/walletTypes";
@@ -37,4 +37,20 @@ export async function findTransacoesByUid(
   });
 
   return convertFirestoreValue(todas) as TransacaoData[];
+}
+
+export async function adicionarSaldoDisponivel(
+  uid: string,
+  valor: number
+): Promise<void> {
+  const docRef = db.collection("usuarios").doc(uid);
+  const doc = await docRef.get();
+
+  if (!doc.exists) {
+    throw new Error("Usuário não encontrado.");
+  }
+
+  await docRef.update({
+    saldo_disponivel: fieldValue.increment(valor),
+  });
 }
