@@ -1,3 +1,6 @@
+// Autor: Rafael Lanza de Queiroz
+// RA: 22010825
+
 import {
   MAX_PRICE_PERCENT,
   MIN_PRICE_PERCENT,

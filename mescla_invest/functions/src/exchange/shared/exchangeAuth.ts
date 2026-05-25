@@ -1,3 +1,6 @@
+// Autor: Rafael Lanza de Queiroz
+// RA: 22010825
+
 import * as http from "http";
 import {auth} from "../../shared/firebase";
 import {AuthenticatedExchangeUser} from "../types/exchangeTypes";

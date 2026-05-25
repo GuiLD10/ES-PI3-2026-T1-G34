@@ -1,3 +1,6 @@
+// Autor: Rafael Lanza de Queiroz
+// RA: 22010825
+
 export class ExchangeError extends Error {
   readonly statusCode: number;
   readonly field?: string;

@@ -1,3 +1,6 @@
+// Autor: Rafael Lanza de Queiroz
+// RA: 22010825
+
 import type {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 export const EXCHANGE_COLLECTIONS = {

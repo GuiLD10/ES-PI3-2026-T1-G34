@@ -1,3 +1,6 @@
+// Autor: Rafael Lanza de Queiroz
+// RA: 22010825
+
 import {onRequest} from "firebase-functions/v2/https";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {authenticateExchangeUser} from "../shared/exchangeAuth";
