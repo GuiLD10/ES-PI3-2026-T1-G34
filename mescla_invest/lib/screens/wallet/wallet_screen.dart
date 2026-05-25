@@ -2,7 +2,10 @@
 // RA: 21013037
 // Descricao: Tela de Carteira do Investidor do MesclaInvest
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_routes.dart';
 import '../../core/services/auth_service.dart';
@@ -22,11 +25,25 @@ class _WalletScreenState extends State<WalletScreen> {
   List<TransactionModel> _transacoes = [];
   bool _isLoading = true;
   String? _erro;
+  final TextEditingController _valorController = TextEditingController();
+  Timer? _saldoTimer;
+  bool _mostrandoQrCode = false;
+  bool _adicionandoSaldo = false;
+  int _segundosRestantes = 0;
+
+  static const int _tempoConfirmacaoSaldoSegundos = 10;
 
   @override
   void initState() {
     super.initState();
     _carregarDados();
+  }
+
+  @override
+  void dispose() {
+    _saldoTimer?.cancel();
+    _valorController.dispose();
+    super.dispose();
   }
 
   Future<void> _carregarDados() async {
@@ -63,6 +80,103 @@ class _WalletScreenState extends State<WalletScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _adicionarSaldo() async {
+    if (_adicionandoSaldo) return;
+
+    final valor = _parseValorReais(_valorController.text);
+    if (valor == null) {
+      _mostrarMensagem('Informe um valor valido maior que zero.', Colors.red);
+      return;
+    }
+
+    final uid = AuthService.currentUid;
+    if (uid == null || uid.isEmpty) {
+      _mostrarMensagem('Usuario nao autenticado.', Colors.red);
+      return;
+    }
+
+    _saldoTimer?.cancel();
+    setState(() {
+      _mostrandoQrCode = true;
+      _adicionandoSaldo = true;
+      _segundosRestantes = _tempoConfirmacaoSaldoSegundos;
+    });
+
+    _saldoTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      final segundos = _segundosRestantes - 1;
+      setState(() => _segundosRestantes = segundos);
+
+      if (segundos <= 0) {
+        timer.cancel();
+        _finalizarAdicaoSaldo(valor);
+      }
+    });
+  }
+
+  Future<void> _finalizarAdicaoSaldo(double valor) async {
+    try {
+      await WalletService.adicionarSaldo(valor);
+
+      if (!mounted) return;
+      setState(() {
+        _mostrandoQrCode = false;
+        _adicionandoSaldo = false;
+        _valorController.clear();
+      });
+
+      _mostrarMensagem(
+        'Saldo de ${_formatarReais(valor)} adicionado com sucesso.',
+        Colors.green,
+      );
+      await _carregarDados();
+    } on WalletServiceException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _mostrandoQrCode = false;
+        _adicionandoSaldo = false;
+      });
+      _mostrarMensagem(e.message, Colors.red);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _mostrandoQrCode = false;
+        _adicionandoSaldo = false;
+      });
+      _mostrarMensagem('Erro ao adicionar saldo.', Colors.red);
+    }
+  }
+
+  double? _parseValorReais(String text) {
+    var normalized = text.trim().replaceAll('R\$', '').replaceAll(' ', '');
+
+    if (normalized.isEmpty) return null;
+
+    if (normalized.contains(',')) {
+      normalized = normalized.replaceAll('.', '').replaceAll(',', '.');
+    }
+
+    final valor = double.tryParse(normalized);
+    if (valor == null || valor <= 0) return null;
+
+    return valor;
+  }
+
+  void _mostrarMensagem(String mensagem, Color cor) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensagem),
+        backgroundColor: cor,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _onNavTap(int index) {
@@ -290,6 +404,8 @@ class _WalletScreenState extends State<WalletScreen> {
           ),
         ),
         const SizedBox(height: 24),
+        _buildAdicionarSaldo(),
+        const SizedBox(height: 24),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
@@ -342,6 +458,128 @@ class _WalletScreenState extends State<WalletScreen> {
         else
           ..._transacoes.map((t) => _buildTransacaoCard(t)),
         const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildAdicionarSaldo() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFDDE4F0),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: _mostrandoQrCode
+          ? _buildQrCodeSaldo()
+          : _buildFormularioAdicionarSaldo(),
+    );
+  }
+
+  Widget _buildFormularioAdicionarSaldo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Adicionar Saldo',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _valorController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[\d,.]')),
+          ],
+          decoration: InputDecoration(
+            hintText: 'Ex: 100,00',
+            prefixText: 'R\$ ',
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: ElevatedButton.icon(
+            onPressed: _adicionandoSaldo ? null : _adicionarSaldo,
+            icon: const Icon(Icons.add_circle_outline, size: 20),
+            label: const Text('Adicionar saldo'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+              disabledForegroundColor: Colors.white70,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQrCodeSaldo() {
+    return Column(
+      children: [
+        Text(
+          'Escaneie o QR Code para pagar',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Image.asset(
+            'assets/images/qr_code.png',
+            width: 180,
+            height: 180,
+            fit: BoxFit.contain,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                value: _segundosRestantes / _tempoConfirmacaoSaldoSegundos,
+                strokeWidth: 3,
+                color: AppColors.primary,
+                backgroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Processando em $_segundosRestantes segundos...',
+              style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
+            ),
+          ],
+        ),
       ],
     );
   }

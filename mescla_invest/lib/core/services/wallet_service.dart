@@ -3,9 +3,12 @@
 // Descricao: Service de carteira - comunica com Firebase Functions
 
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
-import '../../../models/wallet_model.dart';
+
 import '../../../models/transaction_model.dart';
+import '../../../models/wallet_model.dart';
+import 'auth_service.dart';
 
 class WalletServiceException implements Exception {
   final String message;
@@ -26,7 +29,7 @@ class WalletService {
     final walletJson = data['data'];
 
     if (walletJson is! Map) {
-      throw WalletServiceException('Resposta inválida ao buscar carteira.');
+      throw WalletServiceException('Resposta invalida ao buscar carteira.');
     }
 
     return WalletModel.fromMap(uid, Map<String, dynamic>.from(walletJson));
@@ -40,7 +43,7 @@ class WalletService {
     final transacoesJson = data['data'];
 
     if (transacoesJson is! List) {
-      throw WalletServiceException('Resposta inválida ao buscar transações.');
+      throw WalletServiceException('Resposta invalida ao buscar transacoes.');
     }
 
     return transacoesJson.whereType<Map>().map((item) {
@@ -48,6 +51,10 @@ class WalletService {
       final id = map['id'] as String? ?? '';
       return TransactionModel.fromMap(id, map);
     }).toList();
+  }
+
+  static Future<void> adicionarSaldo(double valor) async {
+    await _postJson('wallet-adicionarSaldo', {'valor': valor});
   }
 
   static Future<Map<String, dynamic>> _getJson(
@@ -62,28 +69,37 @@ class WalletService {
           )
           .timeout(const Duration(seconds: 15));
 
-      final decoded = jsonDecode(response.body);
-
-      if (decoded is! Map) {
-        throw WalletServiceException('Resposta inválida das Functions.');
-      }
-
-      final data = Map<String, dynamic>.from(decoded);
-
-      if (response.statusCode < 200 ||
-          response.statusCode >= 300 ||
-          data['success'] != true) {
-        throw WalletServiceException(
-          _extractMessage(data) ?? 'Erro ao buscar dados da carteira.',
-        );
-      }
-
-      return data;
+      return _validateResponse(response, 'Erro ao buscar dados da carteira.');
     } on WalletServiceException {
       rethrow;
     } catch (_) {
       throw WalletServiceException(
-        'Erro de conexão. Verifique se o emulador das Functions está rodando.',
+        'Erro de conexao. Verifique se o emulador das Functions esta rodando.',
+      );
+    }
+  }
+
+  static Future<Map<String, dynamic>> _postJson(
+    String functionName,
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final response = await http
+          .post(
+            _functionUri(functionName, null),
+            headers: AuthService.headersAutenticados(),
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      return _validateResponse(response, 'Erro ao adicionar saldo.');
+    } on WalletServiceException {
+      rethrow;
+    } on AuthServiceException catch (e) {
+      throw WalletServiceException(e.message);
+    } catch (_) {
+      throw WalletServiceException(
+        'Erro de conexao. Verifique se o emulador das Functions esta rodando.',
       );
     }
   }
@@ -95,6 +111,27 @@ class WalletService {
     return Uri.parse(
       '$_functionsBaseUrl/$functionName',
     ).replace(queryParameters: queryParameters);
+  }
+
+  static Map<String, dynamic> _validateResponse(
+    http.Response response,
+    String fallbackMessage,
+  ) {
+    final decoded = jsonDecode(response.body);
+
+    if (decoded is! Map) {
+      throw WalletServiceException('Resposta invalida das Functions.');
+    }
+
+    final data = Map<String, dynamic>.from(decoded);
+
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        data['success'] != true) {
+      throw WalletServiceException(_extractMessage(data) ?? fallbackMessage);
+    }
+
+    return data;
   }
 
   static String? _extractMessage(Map<String, dynamic> data) {
