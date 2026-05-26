@@ -6,13 +6,22 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../session/user_session.dart';
+import 'session_manager.dart';
 
 class AuthService {
   static const String _functionsBaseUrl = String.fromEnvironment(
     'FUNCTIONS_BASE_URL',
     defaultValue: 'http://localhost:5001/mesclainvest-d3745/us-central1',
   );
+
+  static String? _uid;
+  static String? _token;
+
+  static String? get currentUid => _uid ?? SessionManager.uid;
+  static bool get isAuthenticated {
+    final token = _token ?? SessionManager.token;
+    return token != null && token.isNotEmpty;
+  }
 
   static Future<Map<String, dynamic>> cadastrar({
     required String nome,
@@ -33,9 +42,7 @@ class AuthService {
 
     if (response['success'] == true) {
 
-      UserSession.nome = nome;
-
-      UserSession.email = email;
+      _storeSession(response);
 
     }
 
@@ -51,13 +58,11 @@ class AuthService {
       'email': email,
       'senha': senha,
     });
+
     if (response['success'] == true) {
-
-      UserSession.nome = response['nome'];
-
-      UserSession.email = response['email'];
-
+      _storeSession(response);
     }
+
     return response;
   }
 
@@ -65,6 +70,25 @@ class AuthService {
     required String email,
   }) async {
     return _postJson('authentication-sendPasswordReset', {'email': email});
+  }
+
+  static Map<String, String> headersAutenticados() {
+    final token = _token ?? SessionManager.token;
+
+    if (token == null || token.isEmpty) {
+      throw const AuthServiceException('Usuario nao autenticado.');
+    }
+
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  static void clearSession() {
+    _uid = null;
+    _token = null;
+    SessionManager.limparSessao();
   }
 
   static Future<Map<String, dynamic>> _postJson(
@@ -97,5 +121,30 @@ class AuthService {
             'Erro de conexão. Verifique se o emulador das Functions está rodando.',
       };
     }
+  }
+
+  static void _storeSession(Map<String, dynamic> response) {
+    final uid = response['uid']?.toString().trim();
+    final token = response['token']?.toString().trim();
+    final name = response['name']?.toString().trim();
+
+    if (uid == null || uid.isEmpty || token == null || token.isEmpty || name == null || name.isEmpty) {
+      return;
+    }
+
+    _uid = uid;
+    _token = token;
+    SessionManager.salvarSessao(uid: uid, token: token, name: name);
+  }
+}
+
+class AuthServiceException implements Exception {
+  final String message;
+
+  const AuthServiceException(this.message);
+
+  @override
+  String toString() {
+    return message;
   }
 }

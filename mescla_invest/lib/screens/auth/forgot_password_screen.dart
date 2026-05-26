@@ -41,7 +41,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (resultado['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(resultado['message'] ?? 'Instruções enviadas para o e-mail cadastrado.'),
+          content: Text(
+            resultado['message'] ??
+                'Instruções enviadas para o e-mail cadastrado.',
+          ),
           backgroundColor: AppColors.primary,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -50,7 +53,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(resultado['message'] ?? 'Erro ao enviar e-mail. Tente novamente.'),
+          content: Text(
+            resultado['message'] ?? 'Erro ao enviar e-mail. Tente novamente.',
+          ),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -120,7 +125,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     //     _CpfInputFormatter(),
                     //   ],
                     // ),
-
                     const SizedBox(height: 32),
 
                     // Botão Recuperar centralizado
@@ -133,7 +137,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
-                            disabledBackgroundColor: AppColors.primary.withOpacity(0.7),
+                            disabledBackgroundColor: AppColors.primary
+                                .withValues(alpha: 0.7),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -201,8 +206,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
         filled: true,
         fillColor: Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
