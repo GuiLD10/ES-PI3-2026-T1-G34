@@ -31,7 +31,7 @@ class AuthService {
     required String senha,
     required String confirmarSenha,
   }) async {
-    return _postJson('authentication-registerUser', {
+    final response = await _postJson('authentication-registerUser', {
       'nome': nome,
       'email': email,
       'cpf': cpf,
@@ -39,6 +39,15 @@ class AuthService {
       'senha': senha,
       'confirmarSenha': confirmarSenha,
     });
+
+    if (response['success'] == true) {
+
+      _storeSession(response);
+
+    }
+
+    return response;
+
   }
 
   static Future<Map<String, dynamic>> login({
@@ -117,14 +126,15 @@ class AuthService {
   static void _storeSession(Map<String, dynamic> response) {
     final uid = response['uid']?.toString().trim();
     final token = response['token']?.toString().trim();
+    final name = response['name']?.toString().trim();
 
-    if (uid == null || uid.isEmpty || token == null || token.isEmpty) {
+    if (uid == null || uid.isEmpty || token == null || token.isEmpty || name == null || name.isEmpty) {
       return;
     }
 
     _uid = uid;
     _token = token;
-    SessionManager.salvarSessao(uid: uid, token: token);
+    SessionManager.salvarSessao(uid: uid, token: token, name: name);
   }
 }
 

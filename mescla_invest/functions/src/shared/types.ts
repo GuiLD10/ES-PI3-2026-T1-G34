@@ -15,4 +15,6 @@ export interface ApiResponse {
   token?: string;
   field?: string;
   data?: unknown;
+  name?:string;
+  email?:string;
 }

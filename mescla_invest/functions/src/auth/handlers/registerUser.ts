@@ -81,6 +81,8 @@ export const registerUser = onRequest(async (req, res) => {
       success: true,
       message: "Cadastro realizado com sucesso!",
       uid: user.uid,
+      name: user.displayName,
+      email: user.email,
     });
   } catch (error: unknown) {
     console.error(error);

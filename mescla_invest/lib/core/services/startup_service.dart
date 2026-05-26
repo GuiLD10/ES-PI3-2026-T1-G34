@@ -51,6 +51,56 @@ class StartupService {
 
     return StartupModel.fromJson(Map<String, dynamic>.from(startupJson));
   }
+  static Future<void> criarPerguntaStartup({
+    required String startupId,
+    required String authorName,
+    required String question,
+    required String questionType,
+  }) async {
+
+    // Validacao do ID da startup
+    if (startupId.trim().isEmpty) {
+      throw const StartupServiceException(
+        'ID da startup e obrigatorio.',
+      );
+    }
+
+    // Validacao do nome do autor
+    if (authorName.trim().isEmpty) {
+      throw const StartupServiceException(
+        'Nome do autor e obrigatorio.',
+      );
+    }
+
+    // Validacao da pergunta
+    if (question.trim().isEmpty) {
+      throw const StartupServiceException(
+        'Pergunta obrigatoria.',
+      );
+    }
+
+    // Chama a Firebase Function usando _postJson
+    final data = await _postJson(
+      'startups-createStartupQuestion',
+      {
+        'startupId': startupId.trim(),
+
+        'authorName': authorName.trim(),
+
+        'question': question.trim(),
+
+        // publica ou privada
+        'questionType': questionType,
+      },
+    );
+
+    // Verifica se deu erro
+    if (data['success'] != true) {
+      throw StartupServiceException(
+        data['message'] ?? 'Erro ao enviar pergunta.',
+      );
+    }
+  }
 
   static Future<Map<String, dynamic>> _getJson(
     String functionName, {
@@ -87,6 +137,38 @@ class StartupService {
       throw const StartupServiceException(
         'Erro de conexao. Verifique se o emulador das Functions esta rodando.',
       );
+    }
+  }
+
+  static Future<Map<String, dynamic>> _postJson(
+      String functionName,
+      Map<String, dynamic> body,
+      ) async {
+    try {
+      final response = await http
+          .post(
+        Uri.parse('$_functionsBaseUrl/$functionName'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! Map) {
+        return {
+          'success': false,
+          'message': 'Resposta inválida das Functions.',
+        };
+      }
+
+      return Map<String, dynamic>.from(decoded);
+    } catch (e) {
+      return {
+        'success': false,
+        'message':
+        'Erro de conexão. Verifique se o emulador das Functions está rodando.',
+      };
     }
   }
 
