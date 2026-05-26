@@ -8,7 +8,7 @@ import {
   mapTransacaoDocument,
   mapWalletDocument,
 } from "../shared/walletMapper";
-import {TransacaoData, WalletData} from "../types/walletTypes";
+import {AtivoData, TransacaoData, WalletData} from "../types/walletTypes";
 
 export async function findWalletByUid(uid: string): Promise<WalletData | null> {
   const doc = await db.collection("usuarios").doc(uid).get();
@@ -59,6 +59,45 @@ export async function adicionarSaldoDisponivel(
   return true;
 }
 
+export async function findAtivosByUid(
+  uid: string,
+): Promise<AtivoData[]> {
+  const snapshot = await db
+    .collection("usuarios")
+    .doc(uid)
+    .collection("ativos")
+    .get();
+
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      startup_id: doc.id,
+      quantidade_disponivel: readInteger(data.quantidade_disponivel),
+      quantidade_bloqueada: readInteger(data.quantidade_bloqueada),
+      valor_medio_centavos: readInteger(data.valor_medio_centavos),
+    };
+  });
+}
+
+export async function findTransacoesByStartupId(
+  startupId: string,
+): Promise<{preco_centavos: number; data: string}[]> {
+  const snapshot = await db
+    .collection("transacoes")
+    .where("startup_id", "==", startupId)
+    .orderBy("criado_em", "asc")
+    .limit(200)
+    .get();
+
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      preco_centavos: readInteger(data.valor_unitario_centavos),
+      data: timestampToIso(data.criado_em),
+    };
+  });
+}
+
 function readDate(value: TransacaoData["criado_em"]): Date {
   if (value && typeof value !== "string") {
     return value.toDate();
@@ -69,4 +108,17 @@ function readDate(value: TransacaoData["criado_em"]): Date {
   }
 
   return new Date(0);
+}
+
+function readInteger(value: unknown): number {
+  const num = Number(value ?? 0);
+  return Number.isSafeInteger(num) ? num : 0;
+}
+
+function timestampToIso(value: unknown): string {
+  if (value && typeof value === "object" && "toDate" in value) {
+    return (value as {toDate: () => Date}).toDate().toISOString();
+  }
+  if (typeof value === "string") return value;
+  return new Date(0).toISOString();
 }

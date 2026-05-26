@@ -5,7 +5,7 @@
 import {onRequest} from "firebase-functions/v2/https";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
 import { FieldValue } from "firebase-admin/firestore";
-import { findStartupById , findStartupRef} from "../repositories/startupRepository";
+import { findStartupRef } from "../repositories/startupRepository";
 
 export const createStartupQuestion = onRequest(async (req, res) => {
 

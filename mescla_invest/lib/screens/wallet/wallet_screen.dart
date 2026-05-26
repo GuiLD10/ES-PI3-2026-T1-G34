@@ -12,6 +12,8 @@ import '../../core/services/auth_service.dart';
 import '../../core/services/wallet_service.dart';
 import '../../models/transaction_model.dart';
 import '../../models/wallet_model.dart';
+import '../../models/ativo_model.dart';
+import '../../widgets/token_valorizacao_chart.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -23,6 +25,7 @@ class WalletScreen extends StatefulWidget {
 class _WalletScreenState extends State<WalletScreen> {
   WalletModel? _carteira;
   List<TransactionModel> _transacoes = [];
+  List<AtivoModel> _ativos = [];
   bool _isLoading = true;
   String? _erro;
   final TextEditingController _valorController = TextEditingController();
@@ -61,10 +64,18 @@ class _WalletScreenState extends State<WalletScreen> {
       final carteira = await WalletService.buscarCarteira(uid);
       final transacoes = await WalletService.buscarTransacoes(uid);
 
+      List<AtivoModel> ativos = [];
+      try {
+        ativos = await WalletService.buscarPortfolio(uid);
+      } catch (_) {
+    
+      }
+
       if (!mounted) return;
       setState(() {
         _carteira = carteira;
         _transacoes = transacoes;
+        _ativos = ativos;
         _isLoading = false;
       });
     } on WalletServiceException catch (e) {
@@ -406,35 +417,7 @@ class _WalletScreenState extends State<WalletScreen> {
         const SizedBox(height: 24),
         _buildAdicionarSaldo(),
         const SizedBox(height: 24),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFDDE4F0),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Grafico de Valorizacao',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: Text(
-                  'Em breve',
-                  style: TextStyle(color: AppColors.textHint, fontSize: 13),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
+        TokenValorizacaoChart(ativos: _ativos),
         const SizedBox(height: 24),
         Text(
           'Historico de Transacoes',

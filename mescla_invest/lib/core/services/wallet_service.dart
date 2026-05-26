@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../models/transaction_model.dart';
 import '../../../models/wallet_model.dart';
+import '../../../models/ativo_model.dart';
 import 'auth_service.dart';
 
 class WalletServiceException implements Exception {
@@ -55,6 +56,27 @@ class WalletService {
 
   static Future<void> adicionarSaldo(double valor) async {
     await _postJson('wallet-adicionarSaldo', {'valor': valor});
+  }
+
+  static Future<List<AtivoModel>> buscarPortfolio(String uid) async {
+    final data = await _getJson(
+      'wallet-getPortfolio',
+      queryParameters: {'uid': uid},
+    );
+    final portfolioJson = data['data'];
+
+    if (portfolioJson is! Map) {
+      throw WalletServiceException('Resposta invalida ao buscar portfolio.');
+    }
+
+    final ativosJson = portfolioJson['ativos'];
+    if (ativosJson is! List) {
+      throw WalletServiceException('Resposta invalida ao buscar ativos.');
+    }
+
+    return ativosJson.whereType<Map>().map((item) {
+      return AtivoModel.fromMap(Map<String, dynamic>.from(item));
+    }).toList();
   }
 
   static Future<Map<String, dynamic>> _getJson(
