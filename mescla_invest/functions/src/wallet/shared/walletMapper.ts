@@ -53,6 +53,7 @@ export function mapTransacaoDocument(doc: DocumentSnapshot): TransacaoData {
   return {
     id: doc.id,
     startup_id: String(data.startup_id ?? ""),
+    startup_nome: String(data.startup_nome ?? ""),
     comprador_uid: String(data.comprador_uid ?? ""),
     vendedor_uid: String(data.vendedor_uid ?? ""),
     oferta_compra_id: String(data.oferta_compra_id ?? ""),

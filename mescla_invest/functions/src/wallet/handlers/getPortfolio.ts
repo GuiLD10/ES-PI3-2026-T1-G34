@@ -1,10 +1,12 @@
 // Autor: Artur Henrique Pagno
 // RA: 21013037
-// Descricao: Handler para buscar portfolio do usuario (ativos + historico de precos)
+// Descricao: Handler para buscar portfolio do usuario
+// com ativos e historico de precos.
 
 import {onRequest} from "firebase-functions/v2/https";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {db} from "../../shared/firebase";
+import {getStartupMarketPrices} from "../../shared/startupPricing";
 import {
   findAtivosByUid,
   findTransacoesByStartupId,
@@ -23,9 +25,9 @@ export const getPortfolio = onRequest(async (req, res) => {
     });
   }
 
-  const uid = typeof req.query.uid === "string"
-    ? req.query.uid.trim()
-    : "";
+  const uid = typeof req.query.uid === "string" ?
+    req.query.uid.trim() :
+    "";
 
   if (!uid) {
     return sendJson(res, 400, {
@@ -45,6 +47,7 @@ export const getPortfolio = onRequest(async (req, res) => {
         ]);
 
         const startupData = startupDoc.data() ?? {};
+        const prices = getStartupMarketPrices(startupData);
 
         return {
           startup_id: ativo.startup_id,
@@ -52,12 +55,8 @@ export const getPortfolio = onRequest(async (req, res) => {
           quantidade_disponivel: ativo.quantidade_disponivel,
           quantidade_bloqueada: ativo.quantidade_bloqueada,
           valor_medio_centavos: ativo.valor_medio_centavos,
-          preco_atual_centavos: readNonNegativeInt(
-            startupData.preco_atual_centavos,
-          ),
-          preco_primario_centavos: readNonNegativeInt(
-            startupData.preco_primario_centavos,
-          ),
+          preco_atual_centavos: prices.currentPriceCents,
+          preco_primario_centavos: prices.primaryPriceCents,
           historico_precos: historicoPrecos,
         };
       }),
@@ -75,8 +74,3 @@ export const getPortfolio = onRequest(async (req, res) => {
     });
   }
 });
-
-function readNonNegativeInt(value: unknown): number {
-  const num = Number(value ?? 0);
-  return Number.isSafeInteger(num) && num >= 0 ? num : 0;
-}

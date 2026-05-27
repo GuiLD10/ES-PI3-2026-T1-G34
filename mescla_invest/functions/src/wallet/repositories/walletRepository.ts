@@ -30,6 +30,9 @@ export async function findTransacoesByUid(
     ...compras.docs.map(mapTransacaoDocument),
     ...vendas.docs.map(mapTransacaoDocument),
   ];
+  const startupNames = await findStartupNames(
+    [...new Set(transacoes.map((item) => item.startup_id))],
+  );
 
   transacoes.sort((first, second) => {
     const firstDate = readDate(first.criado_em);
@@ -37,7 +40,14 @@ export async function findTransacoesByUid(
     return secondDate.getTime() - firstDate.getTime();
   });
 
-  return convertFirestoreValue(transacoes) as TransacaoData[];
+  return convertFirestoreValue(
+    transacoes.map((item) => {
+      return {
+        ...item,
+        startup_nome: startupNames.get(item.startup_id) ?? item.startup_id,
+      };
+    }),
+  ) as TransacaoData[];
 }
 
 export async function adicionarSaldoDisponivel(
@@ -85,17 +95,34 @@ export async function findTransacoesByStartupId(
   const snapshot = await db
     .collection("transacoes")
     .where("startup_id", "==", startupId)
-    .orderBy("criado_em", "asc")
-    .limit(200)
     .get();
 
-  return snapshot.docs.map((doc) => {
+  const historico = snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
       preco_centavos: readInteger(data.valor_unitario_centavos),
       data: timestampToIso(data.criado_em),
     };
   });
+
+  historico.sort((first, second) => {
+    return new Date(first.data).getTime() - new Date(second.data).getTime();
+  });
+
+  return historico;
+}
+
+async function findStartupNames(startupIds: string[]) {
+  const names = new Map<string, string>();
+  const validIds = startupIds.filter((id) => id.trim() !== "");
+
+  await Promise.all(validIds.map(async (startupId) => {
+    const doc = await db.collection("startups").doc(startupId).get();
+    const nome = String(doc.data()?.nome ?? "").trim();
+    names.set(startupId, nome === "" ? startupId : nome);
+  }));
+
+  return names;
 }
 
 function readDate(value: TransacaoData["criado_em"]): Date {

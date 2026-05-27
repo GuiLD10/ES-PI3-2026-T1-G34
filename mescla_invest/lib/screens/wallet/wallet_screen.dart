@@ -28,6 +28,7 @@ class _WalletScreenState extends State<WalletScreen> {
   List<AtivoModel> _ativos = [];
   bool _isLoading = true;
   String? _erro;
+  String? _portfolioErro;
   final TextEditingController _valorController = TextEditingController();
   Timer? _saldoTimer;
   bool _mostrandoQrCode = false;
@@ -53,6 +54,7 @@ class _WalletScreenState extends State<WalletScreen> {
     setState(() {
       _isLoading = true;
       _erro = null;
+      _portfolioErro = null;
     });
 
     try {
@@ -65,10 +67,13 @@ class _WalletScreenState extends State<WalletScreen> {
       final transacoes = await WalletService.buscarTransacoes(uid);
 
       List<AtivoModel> ativos = [];
+      String? portfolioErro;
       try {
         ativos = await WalletService.buscarPortfolio(uid);
+      } on WalletServiceException catch (e) {
+        portfolioErro = e.message;
       } catch (_) {
-    
+        portfolioErro = 'Erro ao carregar ativos da carteira.';
       }
 
       if (!mounted) return;
@@ -76,6 +81,7 @@ class _WalletScreenState extends State<WalletScreen> {
         _carteira = carteira;
         _transacoes = transacoes;
         _ativos = ativos;
+        _portfolioErro = portfolioErro;
         _isLoading = false;
       });
     } on WalletServiceException catch (e) {
@@ -417,6 +423,10 @@ class _WalletScreenState extends State<WalletScreen> {
         const SizedBox(height: 24),
         _buildAdicionarSaldo(),
         const SizedBox(height: 24),
+        if (_portfolioErro != null) ...[
+          _buildPortfolioErro(_portfolioErro!),
+          const SizedBox(height: 12),
+        ],
         TokenValorizacaoChart(ativos: _ativos),
         const SizedBox(height: 24),
         Text(
@@ -456,6 +466,21 @@ class _WalletScreenState extends State<WalletScreen> {
       child: _mostrandoQrCode
           ? _buildQrCodeSaldo()
           : _buildFormularioAdicionarSaldo(),
+    );
+  }
+
+  Widget _buildPortfolioErro(String mensagem) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.redAccent.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        mensagem,
+        style: TextStyle(color: Colors.red.shade700, fontSize: 13),
+      ),
     );
   }
 
@@ -572,6 +597,9 @@ class _WalletScreenState extends State<WalletScreen> {
     final isCompra = transacao.compradorUid == uid;
     final tipo = isCompra ? 'Compra' : 'Venda';
     final corTipo = isCompra ? Colors.green.shade700 : Colors.red.shade700;
+    final startupLabel = transacao.startupNome.isNotEmpty
+        ? transacao.startupNome
+        : transacao.startupId;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -600,7 +628,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
               ),
               Text(
-                transacao.startupId,
+                startupLabel,
                 style: TextStyle(color: AppColors.textHint, fontSize: 12),
               ),
             ],
