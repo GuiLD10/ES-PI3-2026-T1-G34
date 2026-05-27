@@ -162,6 +162,38 @@ class ResultadoOfertaBalcaoModel {
   }
 }
 
+class ResultadoOperacaoMercadoModel {
+  final String startupId;
+  final int quantidade;
+  final int valorUnitarioCentavos;
+  final int valorTotalCentavos;
+  final int precoAnteriorCentavos;
+  final int precoAtualCentavos;
+  final String transacaoId;
+
+  const ResultadoOperacaoMercadoModel({
+    required this.startupId,
+    required this.quantidade,
+    required this.valorUnitarioCentavos,
+    required this.valorTotalCentavos,
+    required this.precoAnteriorCentavos,
+    required this.precoAtualCentavos,
+    required this.transacaoId,
+  });
+
+  factory ResultadoOperacaoMercadoModel.fromJson(Map<String, dynamic> json) {
+    return ResultadoOperacaoMercadoModel(
+      startupId: _asString(json['startup_id']),
+      quantidade: _asInt(json['quantidade']),
+      valorUnitarioCentavos: _asInt(json['valor_unitario_centavos']),
+      valorTotalCentavos: _asInt(json['valor_total_centavos']),
+      precoAnteriorCentavos: _asInt(json['preco_anterior_centavos']),
+      precoAtualCentavos: _asInt(json['preco_atual_centavos']),
+      transacaoId: _asString(json['transacao_id']),
+    );
+  }
+}
+
 String _asString(dynamic value) {
   if (value == null) return '';
   return value.toString();

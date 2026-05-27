@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import '../../core/services/session_manager.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_routes.dart';
+import '../../core/services/balcao_service.dart';
 import '../../core/services/startup_service.dart';
 import '../../models/startup_model.dart';
+import '../../widgets/trade_operation_sheet.dart';
 
 class StartupDetailScreen extends StatefulWidget {
   const StartupDetailScreen({super.key});
@@ -19,6 +21,8 @@ class StartupDetailScreen extends StatefulWidget {
 class _StartupDetailScreenState extends State<StartupDetailScreen> {
   StartupModel? _startup;
   bool _isLoading = true;
+  bool _isCompraMercadoLoading = false;
+  bool _isVendaMercadoLoading = false;
   String? _erro;
   String? _startupId;
   final TextEditingController _perguntaController = TextEditingController();
@@ -74,7 +78,6 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
 
   // Responsavel por enviar pergunta para a startup
   Future<void> _enviarPergunta() async {
-
     final startupId = _startupId;
 
     if (startupId == null) {
@@ -82,7 +85,6 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     }
 
     try {
-
       await StartupService.criarPerguntaStartup(
         startupId: startupId,
 
@@ -102,21 +104,127 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pergunta enviada com sucesso!'),
-        ),
+        const SnackBar(content: Text('Pergunta enviada com sucesso!')),
       );
-
     } on StartupServiceException catch (e) {
-
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.message),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     }
+  }
+
+  Future<void> _comprarAoPrecoMercado(StartupModel startup) async {
+    if (_isCompraMercadoLoading) return;
+
+    final resultadoOperacao = await showModalBottomSheet<TradeOperationResult>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return TradeOperationSheet(
+          tipo: TradeOperationType.compra,
+          startupNome: startup.nome,
+          precoReferenciaCentavos: _precoMercadoCentavos(startup),
+          editarPreco: false,
+        );
+      },
+    );
+
+    if (resultadoOperacao == null || resultadoOperacao.quantidade <= 0) {
+      return;
+    }
+
+    setState(() => _isCompraMercadoLoading = true);
+
+    try {
+      final resultado = await BalcaoService.comprarAoPrecoMercado(
+        startupId: startup.id,
+        quantidade: resultadoOperacao.quantidade,
+      );
+      await _carregarStartup(startup.id);
+
+      if (!mounted) return;
+      _mostrarMensagem(
+        'Compra de ${resultado.quantidade} tokens realizada por '
+        '${_formatarCentavos(resultado.valorTotalCentavos)}.',
+        Colors.green,
+      );
+    } on BalcaoServiceException catch (e) {
+      if (!mounted) return;
+      _mostrarMensagem(e.message, Colors.redAccent);
+    } catch (_) {
+      if (!mounted) return;
+      _mostrarMensagem('Erro ao comprar tokens.', Colors.redAccent);
+    } finally {
+      if (mounted) {
+        setState(() => _isCompraMercadoLoading = false);
+      }
+    }
+  }
+
+  Future<void> _venderAoPrecoMercado(StartupModel startup) async {
+    if (_isVendaMercadoLoading) return;
+
+    final resultadoOperacao = await showModalBottomSheet<TradeOperationResult>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return TradeOperationSheet(
+          tipo: TradeOperationType.venda,
+          startupNome: startup.nome,
+          precoReferenciaCentavos: _precoMercadoCentavos(startup),
+          editarPreco: false,
+        );
+      },
+    );
+
+    if (resultadoOperacao == null || resultadoOperacao.quantidade <= 0) {
+      return;
+    }
+
+    setState(() => _isVendaMercadoLoading = true);
+
+    try {
+      final resultado = await BalcaoService.venderAoPrecoMercado(
+        startupId: startup.id,
+        quantidade: resultadoOperacao.quantidade,
+      );
+      await _carregarStartup(startup.id);
+
+      if (!mounted) return;
+      _mostrarMensagem(
+        'Venda de ${resultado.quantidade} tokens realizada por '
+        '${_formatarCentavos(resultado.valorTotalCentavos)}.',
+        Colors.green,
+      );
+    } on BalcaoServiceException catch (e) {
+      if (!mounted) return;
+      _mostrarMensagem(e.message, Colors.redAccent);
+    } catch (_) {
+      if (!mounted) return;
+      _mostrarMensagem('Erro ao vender tokens.', Colors.redAccent);
+    } finally {
+      if (mounted) {
+        setState(() => _isVendaMercadoLoading = false);
+      }
+    }
+  }
+
+  void _mostrarMensagem(String mensagem, Color cor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensagem),
+        backgroundColor: cor,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -236,7 +344,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
       children: [
         _buildResumo(startup),
         const SizedBox(height: 12),
-        _buildBalcaoButton(startup),
+        _buildAcoesStartup(startup),
         const SizedBox(height: 16),
         _buildSecao(
           titulo: 'Descricao',
@@ -275,23 +383,97 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     );
   }
 
-  Widget _buildBalcaoButton(StartupModel startup) {
-    return SizedBox(
-      width: double.infinity,
-      height: 44,
-      child: ElevatedButton.icon(
-        onPressed: () {
-          Navigator.pushNamed(context, AppRoutes.balcao, arguments: startup.id);
-        },
-        icon: const Icon(Icons.show_chart_rounded, size: 18),
-        label: const Text('Abrir balcao'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
+  Widget _buildAcoesStartup(StartupModel startup) {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: ElevatedButton.icon(
+            onPressed: _isCompraMercadoLoading
+                ? null
+                : () => _comprarAoPrecoMercado(startup),
+            icon: _isCompraMercadoLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.add_shopping_cart_rounded, size: 18),
+            label: const Text('Comprar ao preco de mercado'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF138A5B),
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: const Color(
+                0xFF138A5B,
+              ).withValues(alpha: 0.55),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+            ),
+          ),
         ),
-      ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: ElevatedButton.icon(
+            onPressed: _isVendaMercadoLoading
+                ? null
+                : () => _venderAoPrecoMercado(startup),
+            icon: _isVendaMercadoLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.remove_shopping_cart_rounded, size: 18),
+            label: const Text('Vender ao preco de mercado'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFC0394A),
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: const Color(
+                0xFFC0394A,
+              ).withValues(alpha: 0.55),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pushNamed(
+                context,
+                AppRoutes.balcao,
+                arguments: startup.id,
+              );
+            },
+            icon: const Icon(Icons.show_chart_rounded, size: 18),
+            label: const Text('Abrir balcao'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -351,6 +533,11 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          _buildMetrica(
+            label: 'Preco de mercado',
+            value: _formatarCentavos(_precoMercadoCentavos(startup)),
           ),
         ],
       ),
@@ -493,7 +680,6 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 // PERGUNTA
                 Text(
                   item.pergunta,
@@ -510,10 +696,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
                 if (item.respostas.isEmpty)
                   Text(
                     'Nenhuma resposta ainda.',
-                    style: TextStyle(
-                      color: AppColors.textHint,
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: AppColors.textHint, fontSize: 13),
                   ),
 
                 ...item.respostas.map((resposta) {
@@ -530,7 +713,6 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
                         // NOME
                         Text(
                           resposta.nome,
@@ -570,7 +752,6 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
 
       child: Column(
         children: [
-
           // Campo da pergunta
           TextField(
             controller: _perguntaController,
@@ -643,6 +824,19 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
 
   String _formatarMoeda(int valor) {
     return 'R\$ ${_formatarNumero(valor)}';
+  }
+
+  int _precoMercadoCentavos(StartupModel startup) {
+    if (startup.precoAtualCentavos > 0) {
+      return startup.precoAtualCentavos;
+    }
+
+    return startup.precoPrimarioCentavos;
+  }
+
+  String _formatarCentavos(int centavos) {
+    final reais = centavos / 100;
+    return 'R\$ ${reais.toStringAsFixed(2).replaceAll('.', ',')}';
   }
 
   String _formatarNumero(int valor) {

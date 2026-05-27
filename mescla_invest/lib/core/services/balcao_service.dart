@@ -89,6 +89,46 @@ class BalcaoService {
     );
   }
 
+  static Future<ResultadoOperacaoMercadoModel> comprarAoPrecoMercado({
+    required String startupId,
+    required int quantidade,
+  }) async {
+    final data = await _postJson('exchange-buyAtMarket', {
+      'startup_id': startupId,
+      'quantidade': quantidade,
+    });
+    final payload = data['data'];
+
+    if (payload is! Map) {
+      throw const BalcaoServiceException(
+        'Resposta invalida ao comprar tokens.',
+      );
+    }
+
+    return ResultadoOperacaoMercadoModel.fromJson(
+      Map<String, dynamic>.from(payload),
+    );
+  }
+
+  static Future<ResultadoOperacaoMercadoModel> venderAoPrecoMercado({
+    required String startupId,
+    required int quantidade,
+  }) async {
+    final data = await _postJson('exchange-sellAtMarket', {
+      'startup_id': startupId,
+      'quantidade': quantidade,
+    });
+    final payload = data['data'];
+
+    if (payload is! Map) {
+      throw const BalcaoServiceException('Resposta invalida ao vender tokens.');
+    }
+
+    return ResultadoOperacaoMercadoModel.fromJson(
+      Map<String, dynamic>.from(payload),
+    );
+  }
+
   static Future<void> cancelarOferta(String ofertaId) async {
     await _postJson('exchange-cancelOrder', {'oferta_id': ofertaId});
   }

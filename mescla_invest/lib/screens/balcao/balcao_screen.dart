@@ -8,6 +8,7 @@ import '../../core/services/balcao_service.dart';
 import '../../core/services/startup_service.dart';
 import '../../models/balcao_model.dart';
 import '../../models/startup_model.dart';
+import '../../widgets/trade_operation_sheet.dart';
 
 class BalcaoScreen extends StatefulWidget {
   const BalcaoScreen({super.key});
@@ -232,15 +233,16 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
 
   Widget _buildResumoPreco() {
     final orderBook = _orderBook;
+    final precoReferencia = _precoReferenciaCentavos();
 
     return Row(
       children: [
         Expanded(
           child: _buildResumoItem(
             label: 'Preco atual',
-            value: orderBook == null
+            value: orderBook == null || precoReferencia <= 0
                 ? '-'
-                : _formatarCentavos(orderBook.precoAtualCentavos),
+                : _formatarCentavos(precoReferencia),
           ),
         ),
         Expanded(
@@ -608,26 +610,34 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
     );
   }
 
-  void _abrirModalOferta(String tipo) {
+  Future<void> _abrirModalOferta(String tipo) async {
     final startup = _startupSelecionada;
     if (startup == null) return;
 
-    showModalBottomSheet<void>(
+    final precoReferencia = _precoReferenciaCentavos();
+    final resultado = await showModalBottomSheet<TradeOperationResult>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
-        return _OfertaBottomSheet(
-          tipo: tipo,
+        return TradeOperationSheet(
+          tipo: tipo == 'compra'
+              ? TradeOperationType.compra
+              : TradeOperationType.venda,
           startupNome: startup.nome,
-          onSubmit: (quantidade, valorUnitario) async {
-            return _criarOferta(tipo, quantidade, valorUnitario);
-          },
+          precoReferenciaCentavos: precoReferencia,
+          editarPreco: true,
+          precoMinimoCentavos: _precoMinimoCentavos(precoReferencia),
+          precoMaximoCentavos: _precoMaximoCentavos(precoReferencia),
         );
       },
     );
+
+    if (resultado == null) return;
+
+    await _criarOferta(tipo, resultado.quantidade, resultado.valorUnitario);
   }
 
   Future<bool> _criarOferta(
@@ -666,126 +676,30 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
     final reais = centavos / 100;
     return 'R\$ ${reais.toStringAsFixed(2).replaceAll('.', ',')}';
   }
-}
 
-class _OfertaBottomSheet extends StatefulWidget {
-  final String tipo;
-  final String startupNome;
-  final Future<bool> Function(int quantidade, double valorUnitario) onSubmit;
+  int _precoReferenciaCentavos() {
+    final precoOrderBook = _orderBook?.precoAtualCentavos ?? 0;
+    if (precoOrderBook > 0) return precoOrderBook;
 
-  const _OfertaBottomSheet({
-    required this.tipo,
-    required this.startupNome,
-    required this.onSubmit,
-  });
+    final startup = _startupSelecionada;
+    if (startup == null) return 0;
 
-  @override
-  State<_OfertaBottomSheet> createState() => _OfertaBottomSheetState();
-}
-
-class _OfertaBottomSheetState extends State<_OfertaBottomSheet> {
-  final _quantidadeController = TextEditingController();
-  final _valorController = TextEditingController();
-  bool _isLoading = false;
-
-  @override
-  void dispose() {
-    _quantidadeController.dispose();
-    _valorController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _enviar() async {
-    final quantidade = int.tryParse(_quantidadeController.text.trim());
-    final valor = double.tryParse(
-      _valorController.text.trim().replaceAll(',', '.'),
-    );
-
-    if (quantidade == null || quantidade <= 0 || valor == null || valor <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Informe quantidade e preco validos.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
+    if (startup.precoAtualCentavos > 0) {
+      return startup.precoAtualCentavos;
     }
 
-    setState(() => _isLoading = true);
-    final sucesso = await widget.onSubmit(quantidade, valor);
-
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-    if (sucesso) Navigator.pop(context);
+    return startup.precoPrimarioCentavos;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isCompra = widget.tipo == 'compra';
+  int? _precoMinimoCentavos(int precoReferencia) {
+    if (precoReferencia <= 0) return null;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            isCompra ? 'Oferta de compra' : 'Oferta de venda',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 4),
-          Text(widget.startupNome, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 16),
-          _buildField(_quantidadeController, 'Quantidade'),
-          const SizedBox(height: 10),
-          _buildField(_valorController, 'Preco unitario'),
-          const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _enviar,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isCompra
-                    ? const Color(0xFF138A5B)
-                    : const Color(0xFFC0394A),
-                foregroundColor: Colors.white,
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Confirmar oferta'),
-            ),
-          ),
-        ],
-      ),
-    );
+    return ((precoReferencia * 50) + 99) ~/ 100;
   }
 
-  Widget _buildField(TextEditingController controller, String hint) {
-    return TextField(
-      controller: controller,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: const Color(0xFFF4F6FA),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
+  int? _precoMaximoCentavos(int precoReferencia) {
+    if (precoReferencia <= 0) return null;
+
+    return (precoReferencia * 200) ~/ 100;
   }
 }
