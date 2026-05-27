@@ -3,6 +3,8 @@
 
 import {
   CreateOrderInput,
+  MarketBuyInput,
+  MarketSellInput,
   ORDER_TYPES,
   OrderType,
 } from "../types/exchangeTypes";
@@ -37,6 +39,23 @@ export function parseCreateOrderInput(body: unknown): CreateOrderInput {
 export function parseCancelOrderInput(body: unknown): string {
   const data = isRecord(body) ? body : {};
   return normalizeId(data.oferta_id, "oferta_id");
+}
+
+export function parseMarketBuyInput(body: unknown): MarketBuyInput {
+  return parseMarketTradeInput(body);
+}
+
+export function parseMarketSellInput(body: unknown): MarketSellInput {
+  return parseMarketTradeInput(body);
+}
+
+function parseMarketTradeInput(body: unknown) {
+  const data = isRecord(body) ? body : {};
+
+  return {
+    startupId: normalizeId(data.startup_id, "startup_id"),
+    quantity: validateQuantity(data.quantidade),
+  };
 }
 
 export function parseQueryStartupId(value: unknown): string {

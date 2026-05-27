@@ -9,6 +9,12 @@ import type {
 } from "firebase-admin/firestore";
 import {db, fieldValue} from "../../shared/firebase";
 import {
+  buildStartupPriceInitializationPatch,
+  calculateMarketImpactPriceCents,
+  getStartupMarketPrices,
+} from "../../shared/startupPricing";
+import type {StartupMarketPrices} from "../../shared/startupPricing";
+import {
   EXCHANGE_COLLECTIONS,
   ExchangeOrderDocument,
   ExchangeTransactionDocument,
@@ -74,6 +80,10 @@ export async function executeOrderMatching(
 
     const users = await loadUsers(transaction, primaryOrder, selectedOrders);
     const assets = await loadAssets(transaction, primaryOrder, selectedOrders);
+    const marketState = await loadStartupMarketState(
+      transaction,
+      primaryOrder.startupId,
+    );
     const orders = new Map<string, MatchingOrder>([
       [primaryOrder.id, {...primaryOrder}],
       ...selectedOrders.map((order) => {
@@ -92,7 +102,12 @@ export async function executeOrderMatching(
     writeAssets(transaction, assets);
     writeOrders(transaction, orders);
     writeTransactions(transaction, primaryOrder.startupId, transactions);
-    updateStartupPrice(transaction, primaryOrder.startupId, transactions);
+    updateStartupPrice(
+      transaction,
+      marketState,
+      primaryOrder.type,
+      totalExecutedQuantity(transactions),
+    );
 
     const finalOrder = orders.get(primaryOrder.id) ?? primaryOrder;
 
@@ -426,22 +441,56 @@ function writeTransactions(
   });
 }
 
-function updateStartupPrice(
+async function loadStartupMarketState(
   transaction: Transaction,
   startupId: string,
-  transactions: PendingTransaction[],
+): Promise<StartupMarketState> {
+  const ref = db.collection(EXCHANGE_COLLECTIONS.startups).doc(startupId);
+  const doc = await transaction.get(ref);
+
+  if (!doc.exists) {
+    throw new ExchangeError(404, "Startup nao encontrada.");
+  }
+
+  const rawData = doc.data() ?? {};
+
+  return {
+    ref,
+    rawData,
+    prices: getStartupMarketPrices(rawData),
+  };
+}
+
+function updateStartupPrice(
+  transaction: Transaction,
+  marketState: StartupMarketState,
+  aggressorType: OrderType,
+  executedQuantity: number,
 ): void {
-  const lastTransaction = transactions[transactions.length - 1];
+  if (executedQuantity <= 0) return;
 
-  if (!lastTransaction) return;
-
-  transaction.update(
-    db.collection(EXCHANGE_COLLECTIONS.startups).doc(startupId),
-    {
-      preco_atual_centavos: lastTransaction.unitPriceCents,
-      atualizado_em: fieldValue.serverTimestamp(),
-    },
+  const nextPriceCents = calculateMarketImpactPriceCents(
+    marketState.prices.currentPriceCents,
+    executedQuantity,
+    marketState.prices.totalTokens,
+    aggressorType,
   );
+  const pricePatch = buildStartupPriceInitializationPatch(
+    marketState.rawData,
+    marketState.prices,
+  );
+
+  transaction.update(marketState.ref, {
+    ...pricePatch,
+    preco_atual_centavos: nextPriceCents,
+    atualizado_em: fieldValue.serverTimestamp(),
+  });
+}
+
+function totalExecutedQuantity(transactions: PendingTransaction[]) {
+  return transactions.reduce((total, item) => {
+    return total + item.quantity;
+  }, 0);
 }
 
 function calculateOrderStatus(order: MatchingOrder): OrderStatus {
@@ -581,4 +630,10 @@ interface TransferParams {
   unitPriceCents: number;
   users: Map<string, UserState>;
   assets: Map<string, AssetState>;
+}
+
+interface StartupMarketState {
+  ref: DocumentReference;
+  rawData: Record<string, unknown>;
+  prices: StartupMarketPrices;
 }

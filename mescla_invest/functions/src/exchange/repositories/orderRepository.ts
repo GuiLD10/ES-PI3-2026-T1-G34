@@ -3,9 +3,16 @@
 
 import type {
   DocumentReference,
+  DocumentSnapshot,
   Transaction,
 } from "firebase-admin/firestore";
 import {db, fieldValue} from "../../shared/firebase";
+import {
+  buildStartupPriceInitializationPatch,
+  calculateMarketImpactPriceCents,
+  getStartupMarketPrices,
+} from "../../shared/startupPricing";
+import type {StartupMarketPrices} from "../../shared/startupPricing";
 import {
   AuthenticatedExchangeUser,
   CancelledOrderResponse,
@@ -13,10 +20,16 @@ import {
   CreatedOrderResponse,
   EXCHANGE_COLLECTIONS,
   ExchangeOrderDocument,
+  ExchangeTransactionDocument,
+  MarketBuyInput,
+  MarketBuyResponse,
+  MarketSellInput,
+  MarketSellResponse,
   ORDER_STATUS,
   ORDER_TYPES,
   OrderType,
   StartupPriceReference,
+  TRANSACTION_MARKETS,
   UserAssetBalance,
   WalletBalance,
 } from "../types/exchangeTypes";
@@ -44,6 +57,177 @@ export async function createOrder(
   }
 
   return createSellOrder(user, input);
+}
+
+export async function buyAtMarket(
+  user: AuthenticatedExchangeUser,
+  input: MarketBuyInput,
+): Promise<MarketBuyResponse> {
+  const transactionRef = db.collection(EXCHANGE_COLLECTIONS.transactions).doc();
+  let response: MarketBuyResponse | null = null;
+
+  await db.runTransaction(async (transaction) => {
+    const startupRef = db
+      .collection(EXCHANGE_COLLECTIONS.startups)
+      .doc(input.startupId);
+    const startupDoc = await transaction.get(startupRef);
+    const startup = loadActiveStartupFromData(input.startupId, startupDoc);
+    const totalAmountCents = calculateTotalCents(
+      input.quantity,
+      startup.referencePriceCents,
+    );
+    const userRef = db.collection(EXCHANGE_COLLECTIONS.users).doc(user.uid);
+    const wallet = await loadWallet(transaction, userRef);
+    const assetRef = userAssetRef(user.uid, startup.id);
+    const asset = await loadAsset(transaction, assetRef);
+    const pricePatch = buildStartupPriceInitializationPatch(
+      startup.rawData,
+      startup.prices,
+    );
+    const nextPriceCents = calculateMarketImpactPriceCents(
+      startup.referencePriceCents,
+      input.quantity,
+      startup.prices.totalTokens,
+      ORDER_TYPES.buy,
+    );
+
+    validateAvailableBalance(wallet, totalAmountCents);
+    transaction.update(userRef, {
+      saldo_disponivel_centavos:
+        wallet.availableBalanceCents - totalAmountCents,
+      atualizado_em: fieldValue.serverTimestamp(),
+    });
+    transaction.set(assetRef, {
+      startup_id: startup.id,
+      quantidade_disponivel: asset.availableQuantity + input.quantity,
+      quantidade_bloqueada: asset.blockedQuantity,
+      valor_medio_centavos: calculateAveragePriceCents(
+        asset.availableQuantity + asset.blockedQuantity,
+        asset.averagePriceCents,
+        input.quantity,
+        startup.referencePriceCents,
+      ),
+      atualizado_em: fieldValue.serverTimestamp(),
+    }, {merge: true});
+    transaction.set(transactionRef, {
+      mercado: TRANSACTION_MARKETS.primary,
+      comprador_uid: user.uid,
+      vendedor_uid: `startup:${startup.id}`,
+      startup_id: startup.id,
+      oferta_compra_id: "",
+      oferta_venda_id: "",
+      quantidade: input.quantity,
+      valor_unitario_centavos: startup.referencePriceCents,
+      valor_total_centavos: totalAmountCents,
+      criado_em: fieldValue.serverTimestamp(),
+    } satisfies ExchangeTransactionDocument);
+    transaction.update(startupRef, {
+      ...pricePatch,
+      preco_atual_centavos: nextPriceCents,
+      atualizado_em: fieldValue.serverTimestamp(),
+    });
+
+    response = {
+      startup_id: startup.id,
+      quantidade: input.quantity,
+      valor_unitario_centavos: startup.referencePriceCents,
+      valor_total_centavos: totalAmountCents,
+      preco_anterior_centavos: startup.referencePriceCents,
+      preco_atual_centavos: nextPriceCents,
+      transacao_id: transactionRef.id,
+    };
+  });
+
+  if (!response) {
+    throw new ExchangeError(500, "Compra nao foi concluida.");
+  }
+
+  return response;
+}
+
+export async function sellAtMarket(
+  user: AuthenticatedExchangeUser,
+  input: MarketSellInput,
+): Promise<MarketSellResponse> {
+  const transactionRef = db.collection(EXCHANGE_COLLECTIONS.transactions).doc();
+  let response: MarketSellResponse | null = null;
+
+  await db.runTransaction(async (transaction) => {
+    const startupRef = db
+      .collection(EXCHANGE_COLLECTIONS.startups)
+      .doc(input.startupId);
+    const startupDoc = await transaction.get(startupRef);
+    const startup = loadActiveStartupFromData(input.startupId, startupDoc);
+    const totalAmountCents = calculateTotalCents(
+      input.quantity,
+      startup.referencePriceCents,
+    );
+    const userRef = db.collection(EXCHANGE_COLLECTIONS.users).doc(user.uid);
+    const wallet = await loadWallet(transaction, userRef);
+    const assetRef = userAssetRef(user.uid, startup.id);
+    const asset = await loadAsset(transaction, assetRef);
+    const pricePatch = buildStartupPriceInitializationPatch(
+      startup.rawData,
+      startup.prices,
+    );
+    const nextPriceCents = calculateMarketImpactPriceCents(
+      startup.referencePriceCents,
+      input.quantity,
+      startup.prices.totalTokens,
+      ORDER_TYPES.sell,
+    );
+
+    validateAvailableAssets(asset, input.quantity);
+    transaction.update(userRef, {
+      saldo_disponivel_centavos:
+        wallet.availableBalanceCents + totalAmountCents,
+      atualizado_em: fieldValue.serverTimestamp(),
+    });
+    transaction.set(assetRef, {
+      startup_id: startup.id,
+      quantidade_disponivel: asset.availableQuantity - input.quantity,
+      quantidade_bloqueada: asset.blockedQuantity,
+      valor_medio_centavos: calculateAveragePriceAfterSell(
+        asset.availableQuantity + asset.blockedQuantity,
+        asset.averagePriceCents,
+        input.quantity,
+      ),
+      atualizado_em: fieldValue.serverTimestamp(),
+    }, {merge: true});
+    transaction.set(transactionRef, {
+      mercado: TRANSACTION_MARKETS.primary,
+      comprador_uid: `startup:${startup.id}`,
+      vendedor_uid: user.uid,
+      startup_id: startup.id,
+      oferta_compra_id: "",
+      oferta_venda_id: "",
+      quantidade: input.quantity,
+      valor_unitario_centavos: startup.referencePriceCents,
+      valor_total_centavos: totalAmountCents,
+      criado_em: fieldValue.serverTimestamp(),
+    } satisfies ExchangeTransactionDocument);
+    transaction.update(startupRef, {
+      ...pricePatch,
+      preco_atual_centavos: nextPriceCents,
+      atualizado_em: fieldValue.serverTimestamp(),
+    });
+
+    response = {
+      startup_id: startup.id,
+      quantidade: input.quantity,
+      valor_unitario_centavos: startup.referencePriceCents,
+      valor_total_centavos: totalAmountCents,
+      preco_anterior_centavos: startup.referencePriceCents,
+      preco_atual_centavos: nextPriceCents,
+      transacao_id: transactionRef.id,
+    };
+  });
+
+  if (!response) {
+    throw new ExchangeError(500, "Venda nao foi concluida.");
+  }
+
+  return response;
 }
 
 export async function cancelOrder(
@@ -190,37 +374,43 @@ async function loadActiveStartup(
     .collection(EXCHANGE_COLLECTIONS.startups)
     .doc(startupId);
   const doc = await transaction.get(startupRef);
+  const startup = loadActiveStartupFromData(startupId, doc);
+  const pricePatch = buildStartupPriceInitializationPatch(
+    startup.rawData,
+    startup.prices,
+  );
 
+  if (Object.keys(pricePatch).length > 0) {
+    transaction.update(startupRef, {
+      ...pricePatch,
+      atualizado_em: fieldValue.serverTimestamp(),
+    });
+  }
+
+  return startup;
+}
+
+function loadActiveStartupFromData(
+  startupId: string,
+  doc: DocumentSnapshot,
+): LoadedStartupPriceReference {
   if (!doc.exists) {
     throw new ExchangeError(404, "Startup nao encontrada.", "startup_id");
   }
 
-  const data = doc.data() ?? {};
+  const rawData = doc.data() ?? {};
 
-  if (String(data.status ?? "") !== "ativa") {
+  if (String(rawData.status ?? "") !== "ativa") {
     throw new ExchangeError(404, "Startup nao encontrada.", "startup_id");
   }
 
-  const currentPriceCents = readNonNegativeInteger(
-    data.preco_atual_centavos,
-  );
-  const primaryPriceCents = readNonNegativeInteger(
-    data.preco_primario_centavos,
-  );
-  const referencePriceCents =
-    currentPriceCents > 0 ? currentPriceCents : primaryPriceCents;
-
-  if (referencePriceCents <= 0) {
-    throw new ExchangeError(
-      400,
-      "Startup ainda nao possui preco de referencia para o balcao.",
-      "startup_id",
-    );
-  }
+  const prices = getStartupMarketPrices(rawData);
 
   return {
     id: startupId,
-    referencePriceCents,
+    referencePriceCents: prices.currentPriceCents,
+    prices,
+    rawData,
   };
 }
 
@@ -372,6 +562,34 @@ function calculateTotalCents(quantity: number, unitPriceCents: number) {
   return totalAmountCents;
 }
 
+function calculateAveragePriceCents(
+  currentQuantity: number,
+  currentAveragePriceCents: number,
+  boughtQuantity: number,
+  unitPriceCents: number,
+): number {
+  const finalQuantity = currentQuantity + boughtQuantity;
+
+  if (finalQuantity <= 0) {
+    return 0;
+  }
+
+  return Math.round(
+    (
+      (currentQuantity * currentAveragePriceCents) +
+      (boughtQuantity * unitPriceCents)
+    ) / finalQuantity,
+  );
+}
+
+function calculateAveragePriceAfterSell(
+  currentQuantity: number,
+  currentAveragePriceCents: number,
+  soldQuantity: number,
+): number {
+  return currentQuantity - soldQuantity <= 0 ? 0 : currentAveragePriceCents;
+}
+
 interface CancellationOrder {
   type: OrderType;
   userUid: string;
@@ -379,4 +597,9 @@ interface CancellationOrder {
   remainingQuantity: number;
   unitPriceCents: number;
   status: string;
+}
+
+interface LoadedStartupPriceReference extends StartupPriceReference {
+  prices: StartupMarketPrices;
+  rawData: Record<string, unknown>;
 }

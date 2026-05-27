@@ -48,6 +48,15 @@ export interface CreateOrderInput {
   unitPriceCents: number;
 }
 
+export interface MarketTradeInput {
+  startupId: string;
+  quantity: number;
+}
+
+export type MarketBuyInput = MarketTradeInput;
+
+export type MarketSellInput = MarketTradeInput;
+
 export interface ExchangeOrderDocument {
   tipo: OrderType;
   usuario_uid: string;
@@ -61,7 +70,7 @@ export interface ExchangeOrderDocument {
 }
 
 export interface ExchangeTransactionDocument {
-  mercado: typeof TRANSACTION_MARKETS.secondary;
+  mercado: TransactionMarket;
   comprador_uid: string;
   vendedor_uid: string;
   startup_id: string;
@@ -126,6 +135,20 @@ export interface CancelledOrderResponse {
   status: typeof ORDER_STATUS.cancelled;
   quantidade_restante: number;
 }
+
+export interface MarketTradeResponse {
+  startup_id: string;
+  quantidade: number;
+  valor_unitario_centavos: number;
+  valor_total_centavos: number;
+  preco_anterior_centavos: number;
+  preco_atual_centavos: number;
+  transacao_id: string;
+}
+
+export type MarketBuyResponse = MarketTradeResponse;
+
+export type MarketSellResponse = MarketTradeResponse;
 
 export interface StartupPriceReference {
   id: string;
