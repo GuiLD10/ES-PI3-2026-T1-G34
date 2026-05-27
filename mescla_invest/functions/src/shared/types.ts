@@ -17,4 +17,13 @@ export interface ApiResponse {
   data?: unknown;
   name?:string;
   email?:string;
+  startup_id?:string;
+  tendencia?:string;
+  variacao_percentual?: number;
+  preco_inicial_centavos?: number;
+  preco_final_centavos?: number;
+  volume_total_centavos?: number;
+  quantidade_total_tokens?: number;
+  total_transacoes?: number;
+  periodo?:string;
 }

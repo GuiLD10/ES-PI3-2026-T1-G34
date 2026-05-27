@@ -56,6 +56,7 @@ class StartupService {
     required String authorName,
     required String question,
     required String questionType,
+    required String uid,
   }) async {
 
     // Validacao do ID da startup
@@ -79,6 +80,12 @@ class StartupService {
       );
     }
 
+    if (uid.trim().isEmpty){
+      throw const StartupServiceException(
+        'user id obrigatório',
+      );
+    }
+
     // Chama a Firebase Function usando _postJson
     final data = await _postJson(
       'startups-createStartupQuestion',
@@ -91,6 +98,8 @@ class StartupService {
 
         // publica ou privada
         'questionType': questionType,
+
+        'uid': uid.trim(),
       },
     );
 

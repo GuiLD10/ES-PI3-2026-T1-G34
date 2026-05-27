@@ -91,6 +91,8 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
         question: _perguntaController.text,
 
         questionType: 'publica',
+
+        uid: SessionManager.uid.toString(),
       );
 
       // Limpa o campo
