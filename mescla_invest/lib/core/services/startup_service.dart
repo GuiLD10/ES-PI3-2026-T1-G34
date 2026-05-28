@@ -5,6 +5,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:mescla_invest/core/services/session_manager.dart';
 
 import '../../models/startup_model.dart';
 
@@ -39,7 +40,7 @@ class StartupService {
 
     final data = await _getJson(
       'startups-getStartupById',
-      queryParameters: {'startupId': startupId},
+      queryParameters: {'startupId': startupId, 'uid': SessionManager.uid.toString(),},
     );
     final startupJson = data['data'];
 
@@ -56,6 +57,7 @@ class StartupService {
     required String authorName,
     required String question,
     required String questionType,
+    required String uid,
   }) async {
 
     // Validacao do ID da startup
@@ -79,6 +81,12 @@ class StartupService {
       );
     }
 
+    if (uid.trim().isEmpty){
+      throw const StartupServiceException(
+        'user id obrigatório',
+      );
+    }
+
     // Chama a Firebase Function usando _postJson
     final data = await _postJson(
       'startups-createStartupQuestion',
@@ -91,6 +99,8 @@ class StartupService {
 
         // publica ou privada
         'questionType': questionType,
+
+        'uid': uid.trim(),
       },
     );
 
@@ -100,6 +110,54 @@ class StartupService {
         data['message'] ?? 'Erro ao enviar pergunta.',
       );
     }
+  }
+
+  static Future<bool> isUserInvestor(String startupId) async {
+    final uid = SessionManager.uid.toString();
+
+    if (uid.trim().isEmpty) {
+      return false;
+    }
+
+    final data = await _getJson(
+      'wallet-getPortfolio',
+      queryParameters: {
+        'uid': uid,
+      },
+    );
+
+    final portfolioData = data['data'];
+
+    if (portfolioData is! Map) {
+      return false;
+    }
+
+    final ativos = portfolioData['ativos'];
+
+    if (ativos is! List) {
+      return false;
+    }
+
+    for (final ativo in ativos) {
+      if (ativo is Map) {
+        final startupIdAtivo =
+        ativo['startup_id']?.toString();
+
+        final quantidadeDisponivel =
+        (ativo['quantidade_disponivel'] ?? 0) as int;
+
+        final quantidadeBloqueada =
+        (ativo['quantidade_bloqueada'] ?? 0) as int;
+
+        final quantidadeTotal =
+            quantidadeDisponivel + quantidadeBloqueada;
+
+        if (startupIdAtivo == startupId && quantidadeTotal > 0) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   static Future<Map<String, dynamic>> _getJson(
@@ -133,9 +191,12 @@ class StartupService {
       return data;
     } on StartupServiceException {
       rethrow;
-    } catch (_) {
-      throw const StartupServiceException(
-        'Erro de conexao. Verifique se o emulador das Functions esta rodando.',
+    } catch (e, stackTrace) {
+      print('ERRO REAL: $e');
+      print(stackTrace);
+
+      throw StartupServiceException(
+        e.toString(),
       );
     }
   }

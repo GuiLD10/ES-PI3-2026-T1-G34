@@ -50,6 +50,7 @@ export const loginUser = onRequest(async (req, res) => {
       token: data.idToken,
       name: user.displayName,
       email: user.email,
+      telefone: user.phoneNumber,
     });
   } catch (error) {
     console.error(error);

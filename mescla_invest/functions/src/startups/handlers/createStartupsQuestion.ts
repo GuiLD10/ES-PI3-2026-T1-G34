@@ -20,13 +20,20 @@ export const createStartupQuestion = onRequest(async (req, res) => {
     });
   }
 
-  const { startupId, authorName, questionType, question } = req.body;
+  const { startupId, authorName, questionType, question , uid } = req.body;
 
   // Validações
   if (typeof startupId !== "string" || startupId.trim() === "") {
     return sendJson(res, 400, {
       success: false,
       message: "startupId inválido.",
+    });
+  }
+
+  if (typeof uid !== "string" || uid.trim() === ""){
+    return sendJson(res, 400, {
+      success: false,
+      message: "uid invalido.",
     });
   }
 
@@ -48,6 +55,7 @@ export const createStartupQuestion = onRequest(async (req, res) => {
     questionType !== "publica" &&
     questionType !== "privada"
   ) {
+    console.log(questionType);
     return sendJson(res, 400, {
       success: false,
       message: "Tipo da pergunta inválido.",
@@ -78,6 +86,8 @@ export const createStartupQuestion = onRequest(async (req, res) => {
       questionType,
 
       createdAt: new Date().toISOString(),
+
+      uid: uid.trim(),
 
       // seção de respostas
       resposta: [{resposta:"resposta padrão para teste" , nome_autor: "Henrique" , id: crypto.randomUUID()}],

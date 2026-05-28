@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -189,27 +190,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildBotaoSalvar() {
-    return SizedBox(
-      height: 44,
-      width: 100,
-      child: ElevatedButton(
-        onPressed: _salvar,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+    return Row(
+      children: [
+        SizedBox(
+          height: 44,
+          width: 100,
+          child: ElevatedButton(
+            onPressed: _salvar,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Salvar',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          elevation: 0,
         ),
-        child: const Text(
-          'Salvar',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
+
+        const SizedBox(width: 12),
+
+        SizedBox(
+          height: 44,
+          child: OutlinedButton.icon(
+            onPressed: _mostrarPopup2FA,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: BorderSide(color: AppColors.primary),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            icon: const Icon(Icons.security),
+            label: const Text(
+              '2FA',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -244,6 +272,78 @@ class _ProfileScreenState extends State<ProfileScreen> {
           borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
       ),
+    );
+  }
+  Future<void> _mostrarPopup2FA() async {
+
+    final telefoneUsuario = await AuthService.getTelefoneUsuario() ?? 'Telefone não encontrado';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.security),
+              SizedBox(width: 8),
+              Text('Autenticação 2FA'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'O código de autenticação será enviado para:',
+              ),
+
+              const SizedBox(height: 16),
+
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.phone),
+                    const SizedBox(width: 10),
+                    Text(
+                      telefoneUsuario,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancelar'),
+            ),
+
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+
+                // Aqui depois você chama a function do Firebase
+                // para ativar o MFA
+              },
+              child: const Text('Ativar'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

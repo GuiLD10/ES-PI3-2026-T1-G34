@@ -127,6 +127,7 @@ class AuthService {
     final uid = response['uid']?.toString().trim();
     final token = response['token']?.toString().trim();
     final name = response['name']?.toString().trim();
+    final telefone = response['telefone']?.toString().trim();
 
     if (uid == null || uid.isEmpty || token == null || token.isEmpty || name == null || name.isEmpty) {
       return;
@@ -134,7 +135,17 @@ class AuthService {
 
     _uid = uid;
     _token = token;
-    SessionManager.salvarSessao(uid: uid, token: token, name: name);
+    SessionManager.salvarSessao(uid: uid, token: token, name: name , telefone:  telefone ?? '');
+  }
+
+  static String? getTelefoneUsuario() {
+    final telefone = SessionManager.telefone;
+
+    if (telefone == null || telefone.trim().isEmpty) {
+      return null;
+    }
+
+    return telefone;
   }
 }
 

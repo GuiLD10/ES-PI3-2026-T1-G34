@@ -21,6 +21,8 @@ export const getStartupById = onRequest(async (req, res) => {
 
   const startupId = req.query.startupId;
 
+  const uid = typeof req.query.uid === "string" ? req.query.uid.trim() : "";
+
   if (typeof startupId !== "string") {
     return sendJson(res, 400, {
       success: false,
@@ -45,6 +47,17 @@ export const getStartupById = onRequest(async (req, res) => {
     }
 
     const startup = mapStartupDocument(doc);
+
+    startup.perguntas_respostas = startup.perguntas_respostas.filter((pergunta: any) => {
+
+      // publica -> todos podem ver
+      if (pergunta.questionType === "public") {
+        return true;
+      }
+
+      // privada -> apenas dono pode ver
+      return pergunta.uid === uid;
+    });
 
     if (startup.status !== "ativa") {
       return sendJson(res, 404, {

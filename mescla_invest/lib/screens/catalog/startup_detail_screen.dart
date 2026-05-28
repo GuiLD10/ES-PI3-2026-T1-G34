@@ -25,7 +25,10 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
   bool _isVendaMercadoLoading = false;
   String? _erro;
   String? _startupId;
+  String? _authorID;
   final TextEditingController _perguntaController = TextEditingController();
+  bool _isPrivateQuestion = false;
+  bool _isInvestor = false;
 
   @override
   void didChangeDependencies() {
@@ -39,7 +42,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     _carregarStartup(id);
   }
 
-  Future<void> _carregarStartup(String id) async {
+  Future<void> _carregarStartup(String id ) async {
     if (id.trim().isEmpty) {
       setState(() {
         _isLoading = false;
@@ -56,9 +59,12 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     try {
       final startup = await StartupService.buscarStartupPorId(id);
 
+      final isInvestor = await StartupService.isUserInvestor(id);
+
       if (!mounted) return;
       setState(() {
         _startup = startup;
+        _isInvestor = isInvestor;
         _isLoading = false;
       });
     } on StartupServiceException catch (e) {
@@ -90,9 +96,11 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
 
         authorName: SessionManager.name.toString(),
 
+        uid: SessionManager.uid.toString(),
+
         question: _perguntaController.text,
 
-        questionType: 'publica',
+        questionType: _isPrivateQuestion ? 'privada' : 'publica',
       );
 
       // Limpa o campo
@@ -752,6 +760,45 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
 
       child: Column(
         children: [
+          if (_isInvestor)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    'Public',
+                    style: TextStyle(
+                      color:
+                      !_isPrivateQuestion
+                          ? AppColors.primary
+                          : AppColors.textHint,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Switch(
+                    value: _isPrivateQuestion,
+                    onChanged: (value) {
+                      setState(() {
+                        _isPrivateQuestion = value;
+                      });
+                    },
+                    activeColor: AppColors.primary,
+                  ),
+                  Text(
+                    'Private',
+                    style: TextStyle(
+                      color:
+                      _isPrivateQuestion
+                          ? AppColors.primary
+                          : AppColors.textHint,
+
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           // Campo da pergunta
           TextField(
             controller: _perguntaController,
