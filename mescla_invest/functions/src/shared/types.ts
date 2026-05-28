@@ -26,4 +26,5 @@ export interface ApiResponse {
   quantidade_total_tokens?: number;
   total_transacoes?: number;
   periodo?:string;
+  telefone?:string;
 }

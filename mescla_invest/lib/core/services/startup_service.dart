@@ -139,12 +139,24 @@ class StartupService {
     }
 
     for (final ativo in ativos) {
-      if (ativo is Map &&
-          ativo['startup_id']?.toString() == startupId) {
-        return true;
+      if (ativo is Map) {
+        final startupIdAtivo =
+        ativo['startup_id']?.toString();
+
+        final quantidadeDisponivel =
+        (ativo['quantidade_disponivel'] ?? 0) as int;
+
+        final quantidadeBloqueada =
+        (ativo['quantidade_bloqueada'] ?? 0) as int;
+
+        final quantidadeTotal =
+            quantidadeDisponivel + quantidadeBloqueada;
+
+        if (startupIdAtivo == startupId && quantidadeTotal > 0) {
+          return true;
+        }
       }
     }
-
     return false;
   }
 

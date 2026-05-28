@@ -83,6 +83,7 @@ export const registerUser = onRequest(async (req, res) => {
       uid: user.uid,
       name: user.displayName,
       email: user.email,
+      telefone: user.phoneNumber,
     });
   } catch (error: unknown) {
     console.error(error);
