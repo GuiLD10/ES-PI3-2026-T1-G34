@@ -5,6 +5,7 @@
 class TransactionModel {
   final String id;
   final String startupId;
+  final String startupNome;
   final String compradorUid;
   final String vendedorUid;
   final String ofertaCompraId;
@@ -18,6 +19,7 @@ class TransactionModel {
   TransactionModel({
     required this.id,
     required this.startupId,
+    required this.startupNome,
     required this.compradorUid,
     required this.vendedorUid,
     required this.ofertaCompraId,
@@ -33,6 +35,7 @@ class TransactionModel {
     return TransactionModel(
       id: id.isNotEmpty ? id : _asString(map['id']),
       startupId: _asString(map['startup_id']),
+      startupNome: _asString(map['startup_nome']),
       compradorUid: _asString(map['comprador_uid']),
       vendedorUid: _asString(map['vendedor_uid']),
       ofertaCompraId: _asString(map['oferta_compra_id']),

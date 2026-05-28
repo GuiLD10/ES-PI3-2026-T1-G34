@@ -111,6 +111,42 @@ class StartupService {
     }
   }
 
+static Future<bool> isUserInvestor(String uid) async {
+    // Validacao do UID
+    if (uid.trim().isEmpty) {
+      throw const StartupServiceException(
+        'UID do usuario e obrigatorio.',
+      );
+    }
+
+    // Chama a Firebase Function
+    final data = await _getJson(
+      'startups-isUserInvestor',
+      queryParameters: {
+        'uid': uid.trim(),
+      },
+    );
+
+    // Verifica se retornou sucesso
+    if (data['success'] != true) {
+      throw StartupServiceException(
+        data['message'] ?? 'Erro ao verificar investidor.',
+      );
+    }
+
+    // Pega o valor retornado
+    final isInvestor = data['isInvestor'];
+
+    // Garante que seja bool
+    if (isInvestor is! bool) {
+      throw const StartupServiceException(
+        'Resposta invalida ao verificar investidor.',
+      );
+    }
+
+    return isInvestor;
+  }
+
   static Future<Map<String, dynamic>> _getJson(
     String functionName, {
     Map<String, String>? queryParameters,

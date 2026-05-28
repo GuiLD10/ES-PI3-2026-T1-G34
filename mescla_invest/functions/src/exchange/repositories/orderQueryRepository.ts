@@ -2,6 +2,7 @@
 // RA: 22010825
 
 import {db} from "../../shared/firebase";
+import {getStartupMarketPrices} from "../../shared/startupPricing";
 import {
   EXCHANGE_COLLECTIONS,
   ORDER_STATUS,
@@ -15,7 +16,6 @@ import {
   mapOrderDocument,
   mapTransactionDocument,
 } from "../shared/exchangeMappers";
-import {readNonNegativeInteger} from "../shared/exchangeParsing";
 
 const ORDER_BOOK_LIMIT = 25;
 const MY_ORDERS_LIMIT = 80;
@@ -49,9 +49,7 @@ export async function getOrderBook(
 
   return {
     startup_id: startupId,
-    preco_atual_centavos: readNonNegativeInteger(
-      startup.preco_atual_centavos,
-    ),
+    preco_atual_centavos: getStartupMarketPrices(startup).currentPriceCents,
     melhor_compra: buys[0] ?? null,
     melhor_venda: sells[0] ?? null,
     compras: buys,

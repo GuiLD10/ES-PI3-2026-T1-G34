@@ -53,10 +53,6 @@ WEB_API_KEY=sua_chave_web_do_firebase
 
 Use `WEB_API_KEY`, nao `FIREBASE_WEB_API_KEY`, porque o prefixo `FIREBASE_` e reservado pela Firebase CLI.
 
-O arquivo `functions/.env` nao deve ser commitado. Se existir um `.env` na raiz do projeto, ele nao e usado neste fluxo.
-
-## Rodando para teste manual
-
 Entre no Firebase com uma conta que tenha acesso ao projeto:
 
 ```powershell
@@ -99,16 +95,6 @@ flutter run -d chrome --dart-define=FUNCTIONS_BASE_URL=http://localhost:5001/mes
 
 Neste fluxo, apenas as Functions rodam localmente. As chamadas de Auth e Firestore feitas pelo backend usam o projeto Firebase configurado em `.firebaserc`.
 
-## Checklist de teste manual
-
-- Criar uma conta nova pelo app.
-- Tentar criar a mesma conta novamente e confirmar o erro de e-mail em uso.
-- Fazer login com a conta criada.
-- Tentar login com senha incorreta e confirmar erro de credenciais.
-- Solicitar recuperacao de senha.
-- Abrir a listagem de startups.
-- Abrir os detalhes de uma startup.
-
 ## Validacoes
 
 Functions:
@@ -119,12 +105,6 @@ npm run lint
 npm run build
 npm run typecheck
 cd ..
-```
-
-Flutter no escopo de integracao com as Functions:
-
-```powershell
-dart analyze lib\core\services\auth_service.dart lib\core\services\startup_service.dart lib\models\startup_model.dart
 ```
 
 Validacoes completas do Flutter:

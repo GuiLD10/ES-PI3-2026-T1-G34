@@ -20,7 +20,7 @@ class TokenValorizacaoChart extends StatefulWidget {
 
 class _TokenValorizacaoChartState extends State<TokenValorizacaoChart> {
   PeriodoGrafico _periodoSelecionado = PeriodoGrafico.m1;
-  int _ativoSelecionadoIndex = 0; 
+  int _ativoSelecionadoIndex = 0;
 
   static const Map<PeriodoGrafico, String> _periodLabels = {
     PeriodoGrafico.d1: '1D',
@@ -70,7 +70,7 @@ class _TokenValorizacaoChartState extends State<TokenValorizacaoChart> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: widget.ativos.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final isSelected = index == _ativoSelecionadoIndex;
                   final a = widget.ativos[index];
@@ -86,7 +86,9 @@ class _TokenValorizacaoChartState extends State<TokenValorizacaoChart> {
                       child: Text(
                         a.startupNome.isNotEmpty ? a.startupNome : a.startupId,
                         style: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.textPrimary,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textPrimary,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -103,19 +105,13 @@ class _TokenValorizacaoChartState extends State<TokenValorizacaoChart> {
           const SizedBox(height: 16),
           // Chart
           pontosFiltrados.length >= 2
-              ? SizedBox(
-                  height: 180,
-                  child: _buildChart(pontosFiltrados),
-                )
+              ? SizedBox(height: 180, child: _buildChart(pontosFiltrados))
               : SizedBox(
                   height: 100,
                   child: Center(
                     child: Text(
                       'Sem transacoes registradas neste periodo.',
-                      style: TextStyle(
-                        color: AppColors.textHint,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: AppColors.textHint, fontSize: 13),
                     ),
                   ),
                 ),
@@ -150,7 +146,11 @@ class _TokenValorizacaoChartState extends State<TokenValorizacaoChart> {
           Center(
             child: Column(
               children: [
-                Icon(Icons.show_chart_rounded, color: AppColors.textHint, size: 36),
+                Icon(
+                  Icons.show_chart_rounded,
+                  color: AppColors.textHint,
+                  size: 36,
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Nenhum ativo na carteira.',
@@ -175,12 +175,19 @@ class _TokenValorizacaoChartState extends State<TokenValorizacaoChart> {
         variacao = ((precoAtual - precoInicio) / precoInicio) * 100;
       }
     } else if (ativo.precoPrimarioCentavos > 0) {
-      variacao = ((precoAtual - ativo.precoPrimarioCentavos) / ativo.precoPrimarioCentavos) * 100;
+      variacao =
+          ((precoAtual - ativo.precoPrimarioCentavos) /
+              ativo.precoPrimarioCentavos) *
+          100;
     }
 
     final isPositivo = variacao >= 0;
-    final corVariacao = isPositivo ? Colors.green.shade700 : Colors.red.shade700;
-    final iconeVariacao = isPositivo ? Icons.trending_up_rounded : Icons.trending_down_rounded;
+    final corVariacao = isPositivo
+        ? Colors.green.shade700
+        : Colors.red.shade700;
+    final iconeVariacao = isPositivo
+        ? Icons.trending_up_rounded
+        : Icons.trending_down_rounded;
     final sinal = isPositivo ? '+' : '';
 
     return Row(
@@ -236,8 +243,14 @@ class _TokenValorizacaoChartState extends State<TokenValorizacaoChart> {
     final isPositive = spots.last.y >= spots.first.y;
     final lineColor = isPositive ? Colors.green.shade600 : Colors.red.shade600;
     final gradientColors = isPositive
-        ? [Colors.green.shade400.withValues(alpha: 0.3), Colors.green.shade400.withValues(alpha: 0.0)]
-        : [Colors.red.shade400.withValues(alpha: 0.3), Colors.red.shade400.withValues(alpha: 0.0)];
+        ? [
+            Colors.green.shade400.withValues(alpha: 0.3),
+            Colors.green.shade400.withValues(alpha: 0.0),
+          ]
+        : [
+            Colors.red.shade400.withValues(alpha: 0.3),
+            Colors.red.shade400.withValues(alpha: 0.0),
+          ];
 
     return LineChart(
       LineChartData(
@@ -253,8 +266,12 @@ class _TokenValorizacaoChartState extends State<TokenValorizacaoChart> {
           ),
         ),
         titlesData: FlTitlesData(
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -278,7 +295,9 @@ class _TokenValorizacaoChartState extends State<TokenValorizacaoChart> {
               interval: _calcBottomInterval(pontos.length),
               getTitlesWidget: (value, meta) {
                 final idx = value.toInt();
-                if (idx < 0 || idx >= pontos.length) return const SizedBox.shrink();
+                if (idx < 0 || idx >= pontos.length) {
+                  return const SizedBox.shrink();
+                }
                 final d = pontos[idx].data;
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
@@ -303,7 +322,11 @@ class _TokenValorizacaoChartState extends State<TokenValorizacaoChart> {
                     : '';
                 return LineTooltipItem(
                   'R\$ ${spot.y.toStringAsFixed(2).replaceAll('.', ',')}\n$dataStr',
-                  const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                  const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                 );
               }).toList();
             },

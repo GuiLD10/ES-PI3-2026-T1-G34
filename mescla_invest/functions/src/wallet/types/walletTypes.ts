@@ -17,6 +17,7 @@ export interface WalletData {
 export interface TransacaoData {
   id: string;
   startup_id: string;
+  startup_nome: string;
   comprador_uid: string;
   vendedor_uid: string;
   oferta_compra_id: string;
