@@ -5,6 +5,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:mescla_invest/core/services/session_manager.dart';
 
 import '../../models/startup_model.dart';
 
@@ -39,7 +40,7 @@ class StartupService {
 
     final data = await _getJson(
       'startups-getStartupById',
-      queryParameters: {'startupId': startupId},
+      queryParameters: {'startupId': startupId, 'uid': SessionManager.uid.toString(),},
     );
     final startupJson = data['data'];
 
@@ -111,40 +112,40 @@ class StartupService {
     }
   }
 
-static Future<bool> isUserInvestor(String uid) async {
-    // Validacao do UID
+  static Future<bool> isUserInvestor(String startupId) async {
+    final uid = SessionManager.uid.toString();
+
     if (uid.trim().isEmpty) {
-      throw const StartupServiceException(
-        'UID do usuario e obrigatorio.',
-      );
+      return false;
     }
 
-    // Chama a Firebase Function
     final data = await _getJson(
-      'startups-isUserInvestor',
+      'wallet-getPortfolio',
       queryParameters: {
-        'uid': uid.trim(),
+        'uid': uid,
       },
     );
 
-    // Verifica se retornou sucesso
-    if (data['success'] != true) {
-      throw StartupServiceException(
-        data['message'] ?? 'Erro ao verificar investidor.',
-      );
+    final portfolioData = data['data'];
+
+    if (portfolioData is! Map) {
+      return false;
     }
 
-    // Pega o valor retornado
-    final isInvestor = data['isInvestor'];
+    final ativos = portfolioData['ativos'];
 
-    // Garante que seja bool
-    if (isInvestor is! bool) {
-      throw const StartupServiceException(
-        'Resposta invalida ao verificar investidor.',
-      );
+    if (ativos is! List) {
+      return false;
     }
 
-    return isInvestor;
+    for (final ativo in ativos) {
+      if (ativo is Map &&
+          ativo['startup_id']?.toString() == startupId) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   static Future<Map<String, dynamic>> _getJson(
@@ -178,9 +179,12 @@ static Future<bool> isUserInvestor(String uid) async {
       return data;
     } on StartupServiceException {
       rethrow;
-    } catch (_) {
-      throw const StartupServiceException(
-        'Erro de conexao. Verifique se o emulador das Functions esta rodando.',
+    } catch (e, stackTrace) {
+      print('ERRO REAL: $e');
+      print(stackTrace);
+
+      throw StartupServiceException(
+        e.toString(),
       );
     }
   }

@@ -55,6 +55,7 @@ export const createStartupQuestion = onRequest(async (req, res) => {
     questionType !== "publica" &&
     questionType !== "privada"
   ) {
+    console.log(questionType);
     return sendJson(res, 400, {
       success: false,
       message: "Tipo da pergunta inválido.",

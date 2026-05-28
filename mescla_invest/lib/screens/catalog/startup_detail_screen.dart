@@ -59,7 +59,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     try {
       final startup = await StartupService.buscarStartupPorId(id);
 
-      final isInvestor = await StartupService.isUserInvestor(SessionManager.uid.toString());
+      final isInvestor = await StartupService.isUserInvestor(id);
 
       if (!mounted) return;
       setState(() {
@@ -100,7 +100,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
 
         question: _perguntaController.text,
 
-        questionType: _isPrivateQuestion ? 'private' : 'public',
+        questionType: _isPrivateQuestion ? 'privada' : 'publica',
       );
 
       // Limpa o campo
