@@ -4,6 +4,7 @@
 
 import {db, fieldValue} from "../../shared/firebase";
 import {convertFirestoreValue} from "../../shared/firestoreConverters";
+import {PRICE_PRECISION_SCALE} from "../../shared/startupPricing";
 import {
   mapTransacaoDocument,
   mapWalletDocument,
@@ -80,18 +81,30 @@ export async function findAtivosByUid(
 
   return snapshot.docs.map((doc) => {
     const data = doc.data();
+    const averagePriceCents = readInteger(data.valor_medio_centavos);
+    const averagePricePreciseCents = readInteger(
+      data.valor_medio_preciso_centavos,
+    );
+
     return {
       startup_id: doc.id,
       quantidade_disponivel: readInteger(data.quantidade_disponivel),
       quantidade_bloqueada: readInteger(data.quantidade_bloqueada),
-      valor_medio_centavos: readInteger(data.valor_medio_centavos),
+      valor_medio_centavos: averagePriceCents,
+      valor_medio_preciso_centavos: averagePricePreciseCents > 0 ?
+        averagePricePreciseCents :
+        averagePriceCents * PRICE_PRECISION_SCALE,
     };
   });
 }
 
 export async function findTransacoesByStartupId(
   startupId: string,
-): Promise<{preco_centavos: number; data: string}[]> {
+): Promise<{
+  preco_centavos: number;
+  preco_preciso_centavos: number;
+  data: string;
+}[]> {
   const snapshot = await db
     .collection("transacoes")
     .where("startup_id", "==", startupId)
@@ -99,8 +112,20 @@ export async function findTransacoesByStartupId(
 
   const historico = snapshot.docs.map((doc) => {
     const data = doc.data();
+    const marketPriceCents = readInteger(data.preco_mercado_atual_centavos);
+    const unitPriceCents = readInteger(data.valor_unitario_centavos);
+    const preciseMarketPrice = readInteger(
+      data.preco_mercado_atual_preciso_centavos,
+    );
+    const fallbackPriceCents = marketPriceCents > 0 ?
+      marketPriceCents :
+      unitPriceCents;
+
     return {
-      preco_centavos: readInteger(data.valor_unitario_centavos),
+      preco_centavos: fallbackPriceCents,
+      preco_preciso_centavos: preciseMarketPrice > 0 ?
+        preciseMarketPrice :
+        fallbackPriceCents * PRICE_PRECISION_SCALE,
       data: timestampToIso(data.criado_em),
     };
   });

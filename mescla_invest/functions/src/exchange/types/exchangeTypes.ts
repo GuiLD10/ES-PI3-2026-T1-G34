@@ -79,6 +79,12 @@ export interface ExchangeTransactionDocument {
   quantidade: number;
   valor_unitario_centavos: number;
   valor_total_centavos: number;
+  valor_unitario_preciso_centavos?: number;
+  valor_total_preciso_centavos?: number;
+  preco_mercado_anterior_centavos?: number;
+  preco_mercado_atual_centavos?: number;
+  preco_mercado_anterior_preciso_centavos?: number;
+  preco_mercado_atual_preciso_centavos?: number;
   criado_em: FirestoreTimestampField;
 }
 
@@ -115,6 +121,8 @@ export interface ExchangeTransactionResponse {
   quantidade: number;
   valor_unitario_centavos: number;
   valor_total_centavos: number;
+  valor_unitario_preciso_centavos: number;
+  valor_total_preciso_centavos: number;
   criado_em: string | null;
 }
 
@@ -141,8 +149,12 @@ export interface MarketTradeResponse {
   quantidade: number;
   valor_unitario_centavos: number;
   valor_total_centavos: number;
+  valor_unitario_preciso_centavos: number;
+  valor_total_preciso_centavos: number;
   preco_anterior_centavos: number;
   preco_atual_centavos: number;
+  preco_anterior_preciso_centavos: number;
+  preco_atual_preciso_centavos: number;
   transacao_id: string;
 }
 
@@ -164,6 +176,7 @@ export interface UserAssetBalance {
   availableQuantity: number;
   blockedQuantity: number;
   averagePriceCents: number;
+  averagePricePreciseCents: number;
 }
 
 export interface MatchingResult {

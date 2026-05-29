@@ -22,6 +22,8 @@ export function mapStartupDocument(doc: DocumentSnapshot): StartupData {
     tokens_emitidos: Number(data.tokens_emitidos) || 0,
     preco_atual_centavos: prices.currentPriceCents,
     preco_primario_centavos: prices.primaryPriceCents,
+    preco_atual_preciso_centavos: prices.currentPricePreciseCents,
+    preco_primario_preciso_centavos: prices.primaryPricePreciseCents,
     video_demo: (data.video_demo as string) || "",
     socios: Array.isArray(data.socios) ? data.socios : [],
     mentores_conselho: Array.isArray(data.mentores_conselho) ?

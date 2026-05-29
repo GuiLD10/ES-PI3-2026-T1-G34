@@ -3,6 +3,7 @@
 // Descrição: Mapper dos documentos da carteira do Firestore
 
 import type {DocumentSnapshot} from "firebase-admin/firestore";
+import {PRICE_PRECISION_SCALE} from "../../shared/startupPricing";
 import {TransacaoData, WalletData} from "../types/walletTypes";
 
 export function mapWalletDocument(doc: DocumentSnapshot): WalletData {
@@ -49,6 +50,16 @@ export function mapTransacaoDocument(doc: DocumentSnapshot): TransacaoData {
     "valor_total_centavos",
     "valor_total",
   );
+  const preciseUnitPriceCents = readPreciseCents(
+    data,
+    "valor_unitario_preciso_centavos",
+    unitPriceCents,
+  );
+  const preciseTotalAmountCents = readPreciseCents(
+    data,
+    "valor_total_preciso_centavos",
+    totalAmountCents,
+  );
 
   return {
     id: doc.id,
@@ -64,6 +75,8 @@ export function mapTransacaoDocument(doc: DocumentSnapshot): TransacaoData {
     valor_total: readLegacyMoney(data, "valor_total", totalAmountCents),
     valor_unitario_centavos: unitPriceCents,
     valor_total_centavos: totalAmountCents,
+    valor_unitario_preciso_centavos: preciseUnitPriceCents,
+    valor_total_preciso_centavos: preciseTotalAmountCents,
     criado_em: data.criado_em as TransacaoData["criado_em"],
   };
 }
@@ -90,6 +103,15 @@ function readLegacyMoney(
   }
 
   return cents / 100;
+}
+
+function readPreciseCents(
+  data: Record<string, unknown>,
+  preciseField: string,
+  fallbackCents: number,
+): number {
+  const value = readInteger(data[preciseField]);
+  return value > 0 ? value : fallbackCents * PRICE_PRECISION_SCALE;
 }
 
 function readInteger(value: unknown): number {

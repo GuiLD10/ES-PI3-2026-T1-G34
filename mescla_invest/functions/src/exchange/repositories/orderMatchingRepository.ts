@@ -10,8 +10,10 @@ import type {
 import {db, fieldValue} from "../../shared/firebase";
 import {
   buildStartupPriceInitializationPatch,
-  calculateMarketImpactPriceCents,
+  calculateMarketImpactPricePreciseCents,
   getStartupMarketPrices,
+  PRICE_PRECISION_SCALE,
+  preciseCentsToDisplayCents,
 } from "../../shared/startupPricing";
 import type {StartupMarketPrices} from "../../shared/startupPricing";
 import {
@@ -97,17 +99,23 @@ export async function executeOrderMatching(
       users,
       assets,
     );
+    const executedQuantity = totalExecutedQuantity(transactions);
+    const priceUpdate = buildStartupPriceUpdate(
+      marketState,
+      primaryOrder.type,
+      executedQuantity,
+    );
 
     writeUsers(transaction, users);
     writeAssets(transaction, assets);
     writeOrders(transaction, orders);
-    writeTransactions(transaction, primaryOrder.startupId, transactions);
-    updateStartupPrice(
+    writeTransactions(
       transaction,
-      marketState,
-      primaryOrder.type,
-      totalExecutedQuantity(transactions),
+      primaryOrder.startupId,
+      transactions,
+      priceUpdate,
     );
+    updateStartupPrice(transaction, marketState, priceUpdate);
 
     const finalOrder = orders.get(primaryOrder.id) ?? primaryOrder;
 
@@ -247,6 +255,12 @@ async function loadAssets(
       .doc(primary.startupId);
     const doc = await transaction.get(ref);
     const data = doc.exists ? doc.data() ?? {} : {};
+    const averagePriceCents = requireNonNegativeInteger(
+      data.valor_medio_centavos,
+    );
+    const averagePricePreciseCents = requireNonNegativeInteger(
+      data.valor_medio_preciso_centavos,
+    );
 
     assets.set(buildAssetKey(uid, primary.startupId), {
       ref,
@@ -255,9 +269,10 @@ async function loadAssets(
         data.quantidade_disponivel,
       ),
       blockedQuantity: requireNonNegativeInteger(data.quantidade_bloqueada),
-      averagePriceCents: requireNonNegativeInteger(
-        data.valor_medio_centavos,
-      ),
+      averagePriceCents,
+      averagePricePreciseCents: averagePricePreciseCents > 0 ?
+        averagePricePreciseCents :
+        averagePriceCents * PRICE_PRECISION_SCALE,
     });
   }
 
@@ -362,12 +377,16 @@ function updateBuyerAsset(
 
   if (finalQuantity <= 0) {
     asset.averagePriceCents = 0;
+    asset.averagePricePreciseCents = 0;
   } else {
-    asset.averagePriceCents = Math.round(
+    asset.averagePricePreciseCents = Math.round(
       (
-        (currentQuantity * asset.averagePriceCents) +
-        (boughtQuantity * unitPriceCents)
+        (currentQuantity * asset.averagePricePreciseCents) +
+        (boughtQuantity * unitPriceCents * PRICE_PRECISION_SCALE)
       ) / finalQuantity,
+    );
+    asset.averagePriceCents = preciseCentsToDisplayCents(
+      asset.averagePricePreciseCents,
     );
   }
 
@@ -397,6 +416,7 @@ function writeAssets(
       quantidade_disponivel: asset.availableQuantity,
       quantidade_bloqueada: asset.blockedQuantity,
       valor_medio_centavos: asset.averagePriceCents,
+      valor_medio_preciso_centavos: asset.averagePricePreciseCents,
       atualizado_em: fieldValue.serverTimestamp(),
     }, {merge: true});
   });
@@ -419,6 +439,7 @@ function writeTransactions(
   transaction: Transaction,
   startupId: string,
   transactions: PendingTransaction[],
+  priceUpdate: StartupPriceUpdate | null,
 ): void {
   transactions.forEach((pendingTransaction) => {
     const transactionRef = db
@@ -434,6 +455,18 @@ function writeTransactions(
       quantidade: pendingTransaction.quantity,
       valor_unitario_centavos: pendingTransaction.unitPriceCents,
       valor_total_centavos: pendingTransaction.totalAmountCents,
+      valor_unitario_preciso_centavos:
+        pendingTransaction.unitPriceCents * PRICE_PRECISION_SCALE,
+      valor_total_preciso_centavos:
+        pendingTransaction.totalAmountCents * PRICE_PRECISION_SCALE,
+      ...(priceUpdate ? {
+        preco_mercado_anterior_centavos: priceUpdate.previousPriceCents,
+        preco_mercado_atual_centavos: priceUpdate.nextPriceCents,
+        preco_mercado_anterior_preciso_centavos:
+          priceUpdate.previousPricePreciseCents,
+        preco_mercado_atual_preciso_centavos:
+          priceUpdate.nextPricePreciseCents,
+      } : {}),
       criado_em: fieldValue.serverTimestamp(),
     };
 
@@ -461,20 +494,36 @@ async function loadStartupMarketState(
   };
 }
 
-function updateStartupPrice(
-  transaction: Transaction,
+function buildStartupPriceUpdate(
   marketState: StartupMarketState,
   aggressorType: OrderType,
   executedQuantity: number,
-): void {
-  if (executedQuantity <= 0) return;
+): StartupPriceUpdate | null {
+  if (executedQuantity <= 0) return null;
 
-  const nextPriceCents = calculateMarketImpactPriceCents(
-    marketState.prices.currentPriceCents,
+  const nextPricePreciseCents = calculateMarketImpactPricePreciseCents(
+    marketState.prices.currentPricePreciseCents,
     executedQuantity,
     marketState.prices.totalTokens,
     aggressorType,
   );
+  const nextPriceCents = preciseCentsToDisplayCents(nextPricePreciseCents);
+
+  return {
+    previousPriceCents: marketState.prices.currentPriceCents,
+    previousPricePreciseCents: marketState.prices.currentPricePreciseCents,
+    nextPriceCents,
+    nextPricePreciseCents,
+  };
+}
+
+function updateStartupPrice(
+  transaction: Transaction,
+  marketState: StartupMarketState,
+  priceUpdate: StartupPriceUpdate | null,
+): void {
+  if (!priceUpdate) return;
+
   const pricePatch = buildStartupPriceInitializationPatch(
     marketState.rawData,
     marketState.prices,
@@ -482,7 +531,8 @@ function updateStartupPrice(
 
   transaction.update(marketState.ref, {
     ...pricePatch,
-    preco_atual_centavos: nextPriceCents,
+    preco_atual_centavos: priceUpdate.nextPriceCents,
+    preco_atual_preciso_centavos: priceUpdate.nextPricePreciseCents,
     atualizado_em: fieldValue.serverTimestamp(),
   });
 }
@@ -611,6 +661,7 @@ interface AssetState {
   availableQuantity: number;
   blockedQuantity: number;
   averagePriceCents: number;
+  averagePricePreciseCents: number;
 }
 
 interface PendingTransaction {
@@ -636,4 +687,11 @@ interface StartupMarketState {
   ref: DocumentReference;
   rawData: Record<string, unknown>;
   prices: StartupMarketPrices;
+}
+
+interface StartupPriceUpdate {
+  previousPriceCents: number;
+  previousPricePreciseCents: number;
+  nextPriceCents: number;
+  nextPricePreciseCents: number;
 }

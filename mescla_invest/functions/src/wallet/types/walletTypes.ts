@@ -28,6 +28,8 @@ export interface TransacaoData {
   valor_total: number;
   valor_unitario_centavos: number;
   valor_total_centavos: number;
+  valor_unitario_preciso_centavos: number;
+  valor_total_preciso_centavos: number;
   criado_em: Timestamp | string | null;
 }
 
@@ -36,10 +38,12 @@ export interface AtivoData {
   quantidade_disponivel: number;
   quantidade_bloqueada: number;
   valor_medio_centavos: number;
+  valor_medio_preciso_centavos: number;
 }
 
 export interface PricePointData {
   preco_centavos: number;
+  preco_preciso_centavos: number;
   data: string;
 }
 
@@ -49,7 +53,10 @@ export interface PortfolioAtivoResponse {
   quantidade_disponivel: number;
   quantidade_bloqueada: number;
   valor_medio_centavos: number;
+  valor_medio_preciso_centavos: number;
   preco_atual_centavos: number;
   preco_primario_centavos: number;
+  preco_atual_preciso_centavos: number;
+  preco_primario_preciso_centavos: number;
   historico_precos: PricePointData[];
 }

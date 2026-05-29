@@ -55,8 +55,11 @@ export const getPortfolio = onRequest(async (req, res) => {
           quantidade_disponivel: ativo.quantidade_disponivel,
           quantidade_bloqueada: ativo.quantidade_bloqueada,
           valor_medio_centavos: ativo.valor_medio_centavos,
+          valor_medio_preciso_centavos: ativo.valor_medio_preciso_centavos,
           preco_atual_centavos: prices.currentPriceCents,
           preco_primario_centavos: prices.primaryPriceCents,
+          preco_atual_preciso_centavos: prices.currentPricePreciseCents,
+          preco_primario_preciso_centavos: prices.primaryPricePreciseCents,
           historico_precos: historicoPrecos,
         };
       }),

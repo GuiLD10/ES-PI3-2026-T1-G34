@@ -9,8 +9,10 @@ import type {
 import {db, fieldValue} from "../../shared/firebase";
 import {
   buildStartupPriceInitializationPatch,
-  calculateMarketImpactPriceCents,
+  calculateMarketImpactPricePreciseCents,
   getStartupMarketPrices,
+  PRICE_PRECISION_SCALE,
+  preciseCentsToDisplayCents,
 } from "../../shared/startupPricing";
 import type {StartupMarketPrices} from "../../shared/startupPricing";
 import {
@@ -72,9 +74,12 @@ export async function buyAtMarket(
       .doc(input.startupId);
     const startupDoc = await transaction.get(startupRef);
     const startup = loadActiveStartupFromData(input.startupId, startupDoc);
-    const totalAmountCents = calculateTotalCents(
+    const totalAmountPreciseCents = calculateTotalPreciseCents(
       input.quantity,
-      startup.referencePriceCents,
+      startup.prices.currentPricePreciseCents,
+    );
+    const totalAmountCents = preciseCentsToDisplayCents(
+      totalAmountPreciseCents,
     );
     const userRef = db.collection(EXCHANGE_COLLECTIONS.users).doc(user.uid);
     const wallet = await loadWallet(transaction, userRef);
@@ -84,11 +89,18 @@ export async function buyAtMarket(
       startup.rawData,
       startup.prices,
     );
-    const nextPriceCents = calculateMarketImpactPriceCents(
-      startup.referencePriceCents,
+    const nextPricePreciseCents = calculateMarketImpactPricePreciseCents(
+      startup.prices.currentPricePreciseCents,
       input.quantity,
       startup.prices.totalTokens,
       ORDER_TYPES.buy,
+    );
+    const nextPriceCents = preciseCentsToDisplayCents(nextPricePreciseCents);
+    const nextAveragePricePreciseCents = calculateAveragePricePreciseCents(
+      asset.availableQuantity + asset.blockedQuantity,
+      asset.averagePricePreciseCents,
+      input.quantity,
+      startup.prices.currentPricePreciseCents,
     );
 
     validateAvailableBalance(wallet, totalAmountCents);
@@ -101,12 +113,10 @@ export async function buyAtMarket(
       startup_id: startup.id,
       quantidade_disponivel: asset.availableQuantity + input.quantity,
       quantidade_bloqueada: asset.blockedQuantity,
-      valor_medio_centavos: calculateAveragePriceCents(
-        asset.availableQuantity + asset.blockedQuantity,
-        asset.averagePriceCents,
-        input.quantity,
-        startup.referencePriceCents,
+      valor_medio_centavos: preciseAverageToDisplayCents(
+        nextAveragePricePreciseCents,
       ),
+      valor_medio_preciso_centavos: nextAveragePricePreciseCents,
       atualizado_em: fieldValue.serverTimestamp(),
     }, {merge: true});
     transaction.set(transactionRef, {
@@ -119,11 +129,19 @@ export async function buyAtMarket(
       quantidade: input.quantity,
       valor_unitario_centavos: startup.referencePriceCents,
       valor_total_centavos: totalAmountCents,
+      valor_unitario_preciso_centavos: startup.prices.currentPricePreciseCents,
+      valor_total_preciso_centavos: totalAmountPreciseCents,
+      preco_mercado_anterior_centavos: startup.referencePriceCents,
+      preco_mercado_atual_centavos: nextPriceCents,
+      preco_mercado_anterior_preciso_centavos:
+        startup.prices.currentPricePreciseCents,
+      preco_mercado_atual_preciso_centavos: nextPricePreciseCents,
       criado_em: fieldValue.serverTimestamp(),
     } satisfies ExchangeTransactionDocument);
     transaction.update(startupRef, {
       ...pricePatch,
       preco_atual_centavos: nextPriceCents,
+      preco_atual_preciso_centavos: nextPricePreciseCents,
       atualizado_em: fieldValue.serverTimestamp(),
     });
 
@@ -132,8 +150,12 @@ export async function buyAtMarket(
       quantidade: input.quantity,
       valor_unitario_centavos: startup.referencePriceCents,
       valor_total_centavos: totalAmountCents,
+      valor_unitario_preciso_centavos: startup.prices.currentPricePreciseCents,
+      valor_total_preciso_centavos: totalAmountPreciseCents,
       preco_anterior_centavos: startup.referencePriceCents,
       preco_atual_centavos: nextPriceCents,
+      preco_anterior_preciso_centavos: startup.prices.currentPricePreciseCents,
+      preco_atual_preciso_centavos: nextPricePreciseCents,
       transacao_id: transactionRef.id,
     };
   });
@@ -158,9 +180,12 @@ export async function sellAtMarket(
       .doc(input.startupId);
     const startupDoc = await transaction.get(startupRef);
     const startup = loadActiveStartupFromData(input.startupId, startupDoc);
-    const totalAmountCents = calculateTotalCents(
+    const totalAmountPreciseCents = calculateTotalPreciseCents(
       input.quantity,
-      startup.referencePriceCents,
+      startup.prices.currentPricePreciseCents,
+    );
+    const totalAmountCents = preciseCentsToDisplayCents(
+      totalAmountPreciseCents,
     );
     const userRef = db.collection(EXCHANGE_COLLECTIONS.users).doc(user.uid);
     const wallet = await loadWallet(transaction, userRef);
@@ -170,12 +195,19 @@ export async function sellAtMarket(
       startup.rawData,
       startup.prices,
     );
-    const nextPriceCents = calculateMarketImpactPriceCents(
-      startup.referencePriceCents,
+    const nextPricePreciseCents = calculateMarketImpactPricePreciseCents(
+      startup.prices.currentPricePreciseCents,
       input.quantity,
       startup.prices.totalTokens,
       ORDER_TYPES.sell,
     );
+    const nextPriceCents = preciseCentsToDisplayCents(nextPricePreciseCents);
+    const nextAveragePricePreciseCents =
+      calculateAveragePriceAfterSellPreciseCents(
+        asset.availableQuantity + asset.blockedQuantity,
+        asset.averagePricePreciseCents,
+        input.quantity,
+      );
 
     validateAvailableAssets(asset, input.quantity);
     transaction.update(userRef, {
@@ -187,11 +219,10 @@ export async function sellAtMarket(
       startup_id: startup.id,
       quantidade_disponivel: asset.availableQuantity - input.quantity,
       quantidade_bloqueada: asset.blockedQuantity,
-      valor_medio_centavos: calculateAveragePriceAfterSell(
-        asset.availableQuantity + asset.blockedQuantity,
-        asset.averagePriceCents,
-        input.quantity,
+      valor_medio_centavos: preciseAverageToDisplayCents(
+        nextAveragePricePreciseCents,
       ),
+      valor_medio_preciso_centavos: nextAveragePricePreciseCents,
       atualizado_em: fieldValue.serverTimestamp(),
     }, {merge: true});
     transaction.set(transactionRef, {
@@ -204,11 +235,19 @@ export async function sellAtMarket(
       quantidade: input.quantity,
       valor_unitario_centavos: startup.referencePriceCents,
       valor_total_centavos: totalAmountCents,
+      valor_unitario_preciso_centavos: startup.prices.currentPricePreciseCents,
+      valor_total_preciso_centavos: totalAmountPreciseCents,
+      preco_mercado_anterior_centavos: startup.referencePriceCents,
+      preco_mercado_atual_centavos: nextPriceCents,
+      preco_mercado_anterior_preciso_centavos:
+        startup.prices.currentPricePreciseCents,
+      preco_mercado_atual_preciso_centavos: nextPricePreciseCents,
       criado_em: fieldValue.serverTimestamp(),
     } satisfies ExchangeTransactionDocument);
     transaction.update(startupRef, {
       ...pricePatch,
       preco_atual_centavos: nextPriceCents,
+      preco_atual_preciso_centavos: nextPricePreciseCents,
       atualizado_em: fieldValue.serverTimestamp(),
     });
 
@@ -217,8 +256,12 @@ export async function sellAtMarket(
       quantidade: input.quantity,
       valor_unitario_centavos: startup.referencePriceCents,
       valor_total_centavos: totalAmountCents,
+      valor_unitario_preciso_centavos: startup.prices.currentPricePreciseCents,
+      valor_total_preciso_centavos: totalAmountPreciseCents,
       preco_anterior_centavos: startup.referencePriceCents,
       preco_atual_centavos: nextPriceCents,
+      preco_anterior_preciso_centavos: startup.prices.currentPricePreciseCents,
+      preco_atual_preciso_centavos: nextPricePreciseCents,
       transacao_id: transactionRef.id,
     };
   });
@@ -346,6 +389,7 @@ async function createSellOrder(
       quantidade_disponivel: asset.availableQuantity - input.quantity,
       quantidade_bloqueada: asset.blockedQuantity + input.quantity,
       valor_medio_centavos: asset.averagePriceCents,
+      valor_medio_preciso_centavos: asset.averagePricePreciseCents,
       atualizado_em: fieldValue.serverTimestamp(),
     }, {merge: true});
     transaction.set(orderRef, buildOrderDocument(user, input, startup.id));
@@ -442,11 +486,18 @@ async function loadAsset(
 ): Promise<UserAssetBalance> {
   const doc = await transaction.get(assetRef);
   const data = doc.exists ? doc.data() ?? {} : {};
+  const averagePriceCents = readNonNegativeInteger(data.valor_medio_centavos);
+  const averagePricePreciseCents = readNonNegativeInteger(
+    data.valor_medio_preciso_centavos,
+  );
 
   return {
     availableQuantity: readNonNegativeInteger(data.quantidade_disponivel),
     blockedQuantity: readNonNegativeInteger(data.quantidade_bloqueada),
-    averagePriceCents: readNonNegativeInteger(data.valor_medio_centavos),
+    averagePriceCents,
+    averagePricePreciseCents: averagePricePreciseCents > 0 ?
+      averagePricePreciseCents :
+      averagePriceCents * PRICE_PRECISION_SCALE,
   };
 }
 
@@ -506,6 +557,7 @@ async function releaseSellOrderAssets(
     quantidade_disponivel: asset.availableQuantity + order.remainingQuantity,
     quantidade_bloqueada: asset.blockedQuantity - order.remainingQuantity,
     valor_medio_centavos: asset.averagePriceCents,
+    valor_medio_preciso_centavos: asset.averagePricePreciseCents,
     atualizado_em: fieldValue.serverTimestamp(),
   }, {merge: true});
 }
@@ -562,11 +614,27 @@ function calculateTotalCents(quantity: number, unitPriceCents: number) {
   return totalAmountCents;
 }
 
-function calculateAveragePriceCents(
+function calculateTotalPreciseCents(
+  quantity: number,
+  unitPricePreciseCents: number,
+) {
+  const totalAmountPreciseCents = quantity * unitPricePreciseCents;
+
+  if (!Number.isSafeInteger(totalAmountPreciseCents)) {
+    throw new ExchangeError(
+      400,
+      "Valor total da oferta ultrapassa o limite permitido.",
+    );
+  }
+
+  return totalAmountPreciseCents;
+}
+
+function calculateAveragePricePreciseCents(
   currentQuantity: number,
-  currentAveragePriceCents: number,
+  currentAveragePricePreciseCents: number,
   boughtQuantity: number,
-  unitPriceCents: number,
+  unitPricePreciseCents: number,
 ): number {
   const finalQuantity = currentQuantity + boughtQuantity;
 
@@ -576,18 +644,28 @@ function calculateAveragePriceCents(
 
   return Math.round(
     (
-      (currentQuantity * currentAveragePriceCents) +
-      (boughtQuantity * unitPriceCents)
+      (currentQuantity * currentAveragePricePreciseCents) +
+      (boughtQuantity * unitPricePreciseCents)
     ) / finalQuantity,
   );
 }
 
-function calculateAveragePriceAfterSell(
+function calculateAveragePriceAfterSellPreciseCents(
   currentQuantity: number,
-  currentAveragePriceCents: number,
+  currentAveragePricePreciseCents: number,
   soldQuantity: number,
 ): number {
-  return currentQuantity - soldQuantity <= 0 ? 0 : currentAveragePriceCents;
+  return currentQuantity - soldQuantity <= 0 ?
+    0 :
+    currentAveragePricePreciseCents;
+}
+
+function preciseAverageToDisplayCents(averagePricePreciseCents: number) {
+  if (averagePricePreciseCents <= 0) {
+    return 0;
+  }
+
+  return preciseCentsToDisplayCents(averagePricePreciseCents);
 }
 
 interface CancellationOrder {

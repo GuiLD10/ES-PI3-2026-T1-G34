@@ -9,6 +9,7 @@ import {
   ExchangeOrderResponse,
   ExchangeTransactionResponse,
 } from "../types/exchangeTypes";
+import {PRICE_PRECISION_SCALE} from "../../shared/startupPricing";
 import {
   readNonNegativeInteger,
   readOrderType,
@@ -45,6 +46,16 @@ export function mapTransactionDocument(
   doc: QueryDocumentSnapshot | DocumentSnapshot,
 ): ExchangeTransactionResponse {
   const data = doc.data() ?? {};
+  const unitPriceCents = readNonNegativeInteger(
+    data.valor_unitario_centavos,
+  );
+  const totalAmountCents = readNonNegativeInteger(data.valor_total_centavos);
+  const unitPricePreciseCents = readNonNegativeInteger(
+    data.valor_unitario_preciso_centavos,
+  );
+  const totalAmountPreciseCents = readNonNegativeInteger(
+    data.valor_total_preciso_centavos,
+  );
 
   return {
     transacao_id: doc.id,
@@ -55,10 +66,14 @@ export function mapTransactionDocument(
     oferta_compra_id: String(data.oferta_compra_id ?? ""),
     oferta_venda_id: String(data.oferta_venda_id ?? ""),
     quantidade: readNonNegativeInteger(data.quantidade),
-    valor_unitario_centavos: readNonNegativeInteger(
-      data.valor_unitario_centavos,
-    ),
-    valor_total_centavos: readNonNegativeInteger(data.valor_total_centavos),
+    valor_unitario_centavos: unitPriceCents,
+    valor_total_centavos: totalAmountCents,
+    valor_unitario_preciso_centavos: unitPricePreciseCents > 0 ?
+      unitPricePreciseCents :
+      unitPriceCents * PRICE_PRECISION_SCALE,
+    valor_total_preciso_centavos: totalAmountPreciseCents > 0 ?
+      totalAmountPreciseCents :
+      totalAmountCents * PRICE_PRECISION_SCALE,
     criado_em: timestampToIso(data.criado_em),
   };
 }

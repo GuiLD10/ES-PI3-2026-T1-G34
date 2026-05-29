@@ -13,6 +13,8 @@ export interface StartupData {
   tokens_emitidos: number;
   preco_atual_centavos: number;
   preco_primario_centavos: number;
+  preco_atual_preciso_centavos: number;
+  preco_primario_preciso_centavos: number;
   video_demo: string;
   socios: unknown[];
   mentores_conselho: unknown[];
