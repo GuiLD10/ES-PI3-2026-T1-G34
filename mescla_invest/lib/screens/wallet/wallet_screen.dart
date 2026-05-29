@@ -13,7 +13,7 @@ import '../../core/services/wallet_service.dart';
 import '../../models/transaction_model.dart';
 import '../../models/wallet_model.dart';
 import '../../models/ativo_model.dart';
-import '../../widgets/token_valorizacao_chart.dart';
+import '../../widgets/investment_dashboard.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -208,6 +208,11 @@ class _WalletScreenState extends State<WalletScreen> {
 
   String _formatarReais(double valor) {
     return 'R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')}';
+  }
+
+  String _formatarPrecisoCentavos(int precisoCentavos) {
+    final reais = precisoCentavos / (100 * pricePrecisionScale);
+    return 'R\$ ${reais.toStringAsFixed(2).replaceAll('.', ',')}';
   }
 
   @override
@@ -427,7 +432,11 @@ class _WalletScreenState extends State<WalletScreen> {
           _buildPortfolioErro(_portfolioErro!),
           const SizedBox(height: 12),
         ],
-        TokenValorizacaoChart(ativos: _ativos),
+        InvestmentDashboard(
+          ativos: _ativos,
+          transacoes: _transacoes,
+          currentUid: AuthService.currentUid ?? '',
+        ),
         const SizedBox(height: 24),
         Text(
           'Historico de Transacoes',
@@ -637,7 +646,7 @@ class _WalletScreenState extends State<WalletScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                _formatarReais(transacao.valorTotal),
+                _formatarPrecisoCentavos(transacao.valorTotalPrecisoCentavos),
                 style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 14,
@@ -657,3 +666,5 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 }
+
+const int pricePrecisionScale = 10000;

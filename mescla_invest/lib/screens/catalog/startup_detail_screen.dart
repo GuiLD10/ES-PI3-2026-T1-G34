@@ -42,7 +42,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     _carregarStartup(id);
   }
 
-  Future<void> _carregarStartup(String id ) async {
+  Future<void> _carregarStartup(String id) async {
     if (id.trim().isEmpty) {
       setState(() {
         _isLoading = false;
@@ -137,6 +137,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
           tipo: TradeOperationType.compra,
           startupNome: startup.nome,
           precoReferenciaCentavos: _precoMercadoCentavos(startup),
+          precoReferenciaPrecisoCentavos: _precoMercadoPrecisoCentavos(startup),
           editarPreco: false,
         );
       },
@@ -158,7 +159,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
       if (!mounted) return;
       _mostrarMensagem(
         'Compra de ${resultado.quantidade} tokens realizada por '
-        '${_formatarCentavos(resultado.valorTotalCentavos)}.',
+        '${_formatarPrecisoCentavos(resultado.valorTotalPrecisoCentavos)}.',
         Colors.green,
       );
     } on BalcaoServiceException catch (e) {
@@ -188,6 +189,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
           tipo: TradeOperationType.venda,
           startupNome: startup.nome,
           precoReferenciaCentavos: _precoMercadoCentavos(startup),
+          precoReferenciaPrecisoCentavos: _precoMercadoPrecisoCentavos(startup),
           editarPreco: false,
         );
       },
@@ -209,7 +211,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
       if (!mounted) return;
       _mostrarMensagem(
         'Venda de ${resultado.quantidade} tokens realizada por '
-        '${_formatarCentavos(resultado.valorTotalCentavos)}.',
+        '${_formatarPrecisoCentavos(resultado.valorTotalPrecisoCentavos)}.',
         Colors.green,
       );
     } on BalcaoServiceException catch (e) {
@@ -545,7 +547,9 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
           const SizedBox(height: 12),
           _buildMetrica(
             label: 'Preco de mercado',
-            value: _formatarCentavos(_precoMercadoCentavos(startup)),
+            value: _formatarPrecisoCentavos(
+              _precoMercadoPrecisoCentavos(startup),
+            ),
           ),
         ],
       ),
@@ -769,8 +773,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
                   Text(
                     'Public',
                     style: TextStyle(
-                      color:
-                      !_isPrivateQuestion
+                      color: !_isPrivateQuestion
                           ? AppColors.primary
                           : AppColors.textHint,
                       fontWeight: FontWeight.w600,
@@ -788,8 +791,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
                   Text(
                     'Private',
                     style: TextStyle(
-                      color:
-                      _isPrivateQuestion
+                      color: _isPrivateQuestion
                           ? AppColors.primary
                           : AppColors.textHint,
 
@@ -881,9 +883,25 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     return startup.precoPrimarioCentavos;
   }
 
-  String _formatarCentavos(int centavos) {
-    final reais = centavos / 100;
-    return 'R\$ ${reais.toStringAsFixed(2).replaceAll('.', ',')}';
+  int _precoMercadoPrecisoCentavos(StartupModel startup) {
+    if (startup.precoAtualPrecisoCentavos > 0) {
+      return startup.precoAtualPrecisoCentavos;
+    }
+
+    if (startup.precoAtualCentavos > 0) {
+      return startup.precoAtualCentavos * pricePrecisionScale;
+    }
+
+    if (startup.precoPrimarioPrecisoCentavos > 0) {
+      return startup.precoPrimarioPrecisoCentavos;
+    }
+
+    return startup.precoPrimarioCentavos * pricePrecisionScale;
+  }
+
+  String _formatarPrecisoCentavos(int precisoCentavos) {
+    final reais = precisoCentavos / (100 * pricePrecisionScale);
+    return 'R\$ ${reais.toStringAsFixed(4).replaceAll('.', ',')}';
   }
 
   String _formatarNumero(int valor) {
@@ -908,3 +926,5 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     super.dispose();
   }
 }
+
+const int pricePrecisionScale = 10000;

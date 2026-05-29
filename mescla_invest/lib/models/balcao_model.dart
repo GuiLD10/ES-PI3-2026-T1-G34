@@ -95,6 +95,8 @@ class TransacaoBalcaoModel {
   final int quantidade;
   final int valorUnitarioCentavos;
   final int valorTotalCentavos;
+  final int valorUnitarioPrecisoCentavos;
+  final int valorTotalPrecisoCentavos;
   final String? criadoEm;
 
   const TransacaoBalcaoModel({
@@ -106,6 +108,8 @@ class TransacaoBalcaoModel {
     required this.quantidade,
     required this.valorUnitarioCentavos,
     required this.valorTotalCentavos,
+    required this.valorUnitarioPrecisoCentavos,
+    required this.valorTotalPrecisoCentavos,
     this.criadoEm,
   });
 
@@ -119,6 +123,14 @@ class TransacaoBalcaoModel {
       quantidade: _asInt(json['quantidade']),
       valorUnitarioCentavos: _asInt(json['valor_unitario_centavos']),
       valorTotalCentavos: _asInt(json['valor_total_centavos']),
+      valorUnitarioPrecisoCentavos: _readPreciseCents(
+        json['valor_unitario_preciso_centavos'],
+        _asInt(json['valor_unitario_centavos']),
+      ),
+      valorTotalPrecisoCentavos: _readPreciseCents(
+        json['valor_total_preciso_centavos'],
+        _asInt(json['valor_total_centavos']),
+      ),
       criadoEm: _asNullableString(json['criado_em']),
     );
   }
@@ -167,6 +179,8 @@ class ResultadoOperacaoMercadoModel {
   final int quantidade;
   final int valorUnitarioCentavos;
   final int valorTotalCentavos;
+  final int valorUnitarioPrecisoCentavos;
+  final int valorTotalPrecisoCentavos;
   final int precoAnteriorCentavos;
   final int precoAtualCentavos;
   final String transacaoId;
@@ -176,6 +190,8 @@ class ResultadoOperacaoMercadoModel {
     required this.quantidade,
     required this.valorUnitarioCentavos,
     required this.valorTotalCentavos,
+    required this.valorUnitarioPrecisoCentavos,
+    required this.valorTotalPrecisoCentavos,
     required this.precoAnteriorCentavos,
     required this.precoAtualCentavos,
     required this.transacaoId,
@@ -187,6 +203,14 @@ class ResultadoOperacaoMercadoModel {
       quantidade: _asInt(json['quantidade']),
       valorUnitarioCentavos: _asInt(json['valor_unitario_centavos']),
       valorTotalCentavos: _asInt(json['valor_total_centavos']),
+      valorUnitarioPrecisoCentavos: _readPreciseCents(
+        json['valor_unitario_preciso_centavos'],
+        _asInt(json['valor_unitario_centavos']),
+      ),
+      valorTotalPrecisoCentavos: _readPreciseCents(
+        json['valor_total_preciso_centavos'],
+        _asInt(json['valor_total_centavos']),
+      ),
       precoAnteriorCentavos: _asInt(json['preco_anterior_centavos']),
       precoAtualCentavos: _asInt(json['preco_atual_centavos']),
       transacaoId: _asString(json['transacao_id']),
@@ -211,6 +235,17 @@ int _asInt(dynamic value) {
   if (value is String) return int.tryParse(value) ?? 0;
   return 0;
 }
+
+int _readPreciseCents(dynamic value, int fallbackCents) {
+  final precise = _asInt(value);
+  if (precise > 0) {
+    return precise;
+  }
+
+  return fallbackCents * pricePrecisionScale;
+}
+
+const int pricePrecisionScale = 10000;
 
 List<Map<String, dynamic>> _asMapList(dynamic value) {
   if (value is! List) return [];

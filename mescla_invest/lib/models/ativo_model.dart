@@ -4,15 +4,26 @@
 
 class PricePoint {
   final int precoCentavos;
+  final int precoPrecisoCentavos;
   final DateTime data;
 
-  PricePoint({required this.precoCentavos, required this.data});
+  PricePoint({
+    required this.precoCentavos,
+    required this.precoPrecisoCentavos,
+    required this.data,
+  });
 
   double get precoReais => precoCentavos / 100;
 
   factory PricePoint.fromMap(Map<String, dynamic> map) {
+    final precoCentavos = _asInt(map['preco_centavos']);
+    final precoPrecisoCentavos = _asInt(map['preco_preciso_centavos']);
+
     return PricePoint(
-      precoCentavos: _asInt(map['preco_centavos']),
+      precoCentavos: precoCentavos,
+      precoPrecisoCentavos: precoPrecisoCentavos > 0
+          ? precoPrecisoCentavos
+          : precoCentavos * pricePrecisionScale,
       data: _readDateTime(map['data']),
     );
   }
@@ -24,8 +35,11 @@ class AtivoModel {
   final int quantidadeDisponivel;
   final int quantidadeBloqueada;
   final int valorMedioCentavos;
+  final int valorMedioPrecisoCentavos;
   final int precoAtualCentavos;
   final int precoPrimarioCentavos;
+  final int precoAtualPrecisoCentavos;
+  final int precoPrimarioPrecisoCentavos;
   final List<PricePoint> historicoPrecos;
 
   AtivoModel({
@@ -34,8 +48,11 @@ class AtivoModel {
     required this.quantidadeDisponivel,
     required this.quantidadeBloqueada,
     required this.valorMedioCentavos,
+    required this.valorMedioPrecisoCentavos,
     required this.precoAtualCentavos,
     required this.precoPrimarioCentavos,
+    required this.precoAtualPrecisoCentavos,
+    required this.precoPrimarioPrecisoCentavos,
     required this.historicoPrecos,
   });
 
@@ -46,14 +63,36 @@ class AtivoModel {
 
   factory AtivoModel.fromMap(Map<String, dynamic> map) {
     final historico = (map['historico_precos'] as List?) ?? [];
+    final precoAtualCentavos = _asInt(map['preco_atual_centavos']);
+    final precoPrimarioCentavos = _asInt(map['preco_primario_centavos']);
+    final valorMedioCentavos = _asInt(map['valor_medio_centavos']);
+    final valorMedioPrecisoCentavos = _asInt(
+      map['valor_medio_preciso_centavos'],
+    );
+    final precoAtualPrecisoCentavos = _asInt(
+      map['preco_atual_preciso_centavos'],
+    );
+    final precoPrimarioPrecisoCentavos = _asInt(
+      map['preco_primario_preciso_centavos'],
+    );
+
     return AtivoModel(
       startupId: _asString(map['startup_id']),
       startupNome: _asString(map['startup_nome']),
       quantidadeDisponivel: _asInt(map['quantidade_disponivel']),
       quantidadeBloqueada: _asInt(map['quantidade_bloqueada']),
-      valorMedioCentavos: _asInt(map['valor_medio_centavos']),
-      precoAtualCentavos: _asInt(map['preco_atual_centavos']),
-      precoPrimarioCentavos: _asInt(map['preco_primario_centavos']),
+      valorMedioCentavos: valorMedioCentavos,
+      valorMedioPrecisoCentavos: valorMedioPrecisoCentavos > 0
+          ? valorMedioPrecisoCentavos
+          : valorMedioCentavos * pricePrecisionScale,
+      precoAtualCentavos: precoAtualCentavos,
+      precoPrimarioCentavos: precoPrimarioCentavos,
+      precoAtualPrecisoCentavos: precoAtualPrecisoCentavos > 0
+          ? precoAtualPrecisoCentavos
+          : precoAtualCentavos * pricePrecisionScale,
+      precoPrimarioPrecisoCentavos: precoPrimarioPrecisoCentavos > 0
+          ? precoPrimarioPrecisoCentavos
+          : precoPrimarioCentavos * pricePrecisionScale,
       historicoPrecos: historico
           .whereType<Map>()
           .map((item) => PricePoint.fromMap(Map<String, dynamic>.from(item)))
@@ -61,6 +100,8 @@ class AtivoModel {
     );
   }
 }
+
+const int pricePrecisionScale = 10000;
 
 String _asString(dynamic value) {
   if (value == null) return '';

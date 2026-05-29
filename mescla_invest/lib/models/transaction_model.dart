@@ -14,6 +14,8 @@ class TransactionModel {
   final int quantidade;
   final double valorUnitario;
   final double valorTotal;
+  final int valorUnitarioPrecisoCentavos;
+  final int valorTotalPrecisoCentavos;
   final DateTime criadoEm;
 
   TransactionModel({
@@ -28,10 +30,23 @@ class TransactionModel {
     required this.quantidade,
     required this.valorUnitario,
     required this.valorTotal,
+    required this.valorUnitarioPrecisoCentavos,
+    required this.valorTotalPrecisoCentavos,
     required this.criadoEm,
   });
 
   factory TransactionModel.fromMap(String id, Map<String, dynamic> map) {
+    final valorUnitario = _readMoney(
+      map,
+      centavosField: 'valor_unitario_centavos',
+      legacyField: 'valor_unitario',
+    );
+    final valorTotal = _readMoney(
+      map,
+      centavosField: 'valor_total_centavos',
+      legacyField: 'valor_total',
+    );
+
     return TransactionModel(
       id: id.isNotEmpty ? id : _asString(map['id']),
       startupId: _asString(map['startup_id']),
@@ -42,15 +57,17 @@ class TransactionModel {
       ofertaVendaId: _asString(map['oferta_venda_id']),
       mercado: _asString(map['mercado']),
       quantidade: _asInt(map['quantidade']),
-      valorUnitario: _readMoney(
+      valorUnitario: valorUnitario,
+      valorTotal: valorTotal,
+      valorUnitarioPrecisoCentavos: _readPreciseCents(
         map,
-        centavosField: 'valor_unitario_centavos',
-        legacyField: 'valor_unitario',
+        preciseField: 'valor_unitario_preciso_centavos',
+        fallbackValue: valorUnitario,
       ),
-      valorTotal: _readMoney(
+      valorTotalPrecisoCentavos: _readPreciseCents(
         map,
-        centavosField: 'valor_total_centavos',
-        legacyField: 'valor_total',
+        preciseField: 'valor_total_preciso_centavos',
+        fallbackValue: valorTotal,
       ),
       criadoEm: _readDateTime(map['criado_em']),
     );
@@ -68,6 +85,21 @@ double _readMoney(
 
   return _asDouble(map[legacyField]);
 }
+
+int _readPreciseCents(
+  Map<String, dynamic> map, {
+  required String preciseField,
+  required double fallbackValue,
+}) {
+  final precise = _asInt(map[preciseField]);
+  if (precise > 0) {
+    return precise;
+  }
+
+  return (fallbackValue * 100 * pricePrecisionScale).round();
+}
+
+const int pricePrecisionScale = 10000;
 
 DateTime _readDateTime(dynamic value) {
   if (value is DateTime) return value;

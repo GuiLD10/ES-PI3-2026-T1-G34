@@ -94,11 +94,14 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
         BalcaoService.listarMinhasOfertas(),
         BalcaoService.listarTransacoes(startupId),
       ]);
+      final minhasOfertas = results[1] as List<OfertaBalcaoModel>;
 
       if (!mounted) return;
       setState(() {
         _orderBook = results[0] as OrderBookBalcaoModel;
-        _minhasOfertas = results[1] as List<OfertaBalcaoModel>;
+        _minhasOfertas = minhasOfertas
+            .where((oferta) => oferta.startupId == startupId)
+            .toList();
         _transacoes = results[2] as List<TransacaoBalcaoModel>;
         _isLoading = false;
       });
@@ -481,7 +484,7 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
 
   Widget _buildMinhasOfertasTab() {
     if (_minhasOfertas.isEmpty) {
-      return _buildEmpty('Voce ainda nao possui ofertas.');
+      return _buildEmpty('Voce ainda nao possui ofertas para esta startup.');
     }
 
     return RefreshIndicator(

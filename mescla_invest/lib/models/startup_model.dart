@@ -13,6 +13,8 @@ class StartupModel {
   final int tokensEmitidos;
   final int precoAtualCentavos;
   final int precoPrimarioCentavos;
+  final int precoAtualPrecisoCentavos;
+  final int precoPrimarioPrecisoCentavos;
   final String videoDemo;
   final List<SocioModel> socios;
   final List<MentorConselhoModel> mentoresConselho;
@@ -31,6 +33,8 @@ class StartupModel {
     required this.tokensEmitidos,
     required this.precoAtualCentavos,
     required this.precoPrimarioCentavos,
+    required this.precoAtualPrecisoCentavos,
+    required this.precoPrimarioPrecisoCentavos,
     required this.videoDemo,
     required this.socios,
     required this.mentoresConselho,
@@ -51,6 +55,12 @@ class StartupModel {
       tokensEmitidos: _asInt(json['tokens_emitidos']),
       precoAtualCentavos: _asInt(json['preco_atual_centavos']),
       precoPrimarioCentavos: _asInt(json['preco_primario_centavos']),
+      precoAtualPrecisoCentavos: _readPreciseCents(
+        json['preco_atual_preciso_centavos'],
+      ),
+      precoPrimarioPrecisoCentavos: _readPreciseCents(
+        json['preco_primario_preciso_centavos'],
+      ),
       videoDemo: _asString(json['video_demo']),
       socios: _asList(json['socios']).map(SocioModel.fromJson).toList(),
       mentoresConselho: _asList(
@@ -76,6 +86,12 @@ class StartupModel {
       tokensEmitidos: _asInt(map['tokens_emitidos']),
       precoAtualCentavos: _asInt(map['preco_atual_centavos']),
       precoPrimarioCentavos: _asInt(map['preco_primario_centavos']),
+      precoAtualPrecisoCentavos: _readPreciseCents(
+        map['preco_atual_preciso_centavos'],
+      ),
+      precoPrimarioPrecisoCentavos: _readPreciseCents(
+        map['preco_primario_preciso_centavos'],
+      ),
       videoDemo: _asString(map['video_demo']),
       socios: _asList(map['socios']).map(SocioModel.fromJson).toList(),
       mentoresConselho: _asList(
@@ -131,7 +147,6 @@ class PerguntaRespostaModel {
     this.criadoEm,
   });
   factory PerguntaRespostaModel.fromJson(Map<String, dynamic> json) {
-
     final rawRespostas = json['resposta'];
 
     List<RespostaModel> respostasConvertidas = [];
@@ -139,9 +154,7 @@ class PerguntaRespostaModel {
     if (rawRespostas is List) {
       respostasConvertidas = rawRespostas
           .whereType<Map>()
-          .map((item) => RespostaModel.fromMap(
-        Map<String, dynamic>.from(item),
-      ))
+          .map((item) => RespostaModel.fromMap(Map<String, dynamic>.from(item)))
           .toList();
     }
 
@@ -160,10 +173,7 @@ class RespostaModel {
   final String nome;
   final String resposta;
 
-  RespostaModel({
-    required this.nome,
-    required this.resposta,
-  });
+  RespostaModel({required this.nome, required this.resposta});
 
   factory RespostaModel.fromMap(Map<String, dynamic> map) {
     return RespostaModel(
@@ -189,6 +199,10 @@ int _asInt(dynamic value) {
   if (value is double) return value.toInt();
   if (value is String) return int.tryParse(value) ?? 0;
   return 0;
+}
+
+int _readPreciseCents(dynamic value) {
+  return _asInt(value);
 }
 
 List<Map<String, dynamic>> _asList(dynamic value) {

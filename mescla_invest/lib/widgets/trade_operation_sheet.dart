@@ -24,6 +24,7 @@ class TradeOperationSheet extends StatefulWidget {
   final TradeOperationType tipo;
   final String startupNome;
   final int precoReferenciaCentavos;
+  final int? precoReferenciaPrecisoCentavos;
   final bool editarPreco;
   final int? precoMinimoCentavos;
   final int? precoMaximoCentavos;
@@ -33,6 +34,7 @@ class TradeOperationSheet extends StatefulWidget {
     required this.tipo,
     required this.startupNome,
     required this.precoReferenciaCentavos,
+    this.precoReferenciaPrecisoCentavos,
     required this.editarPreco,
     this.precoMinimoCentavos,
     this.precoMaximoCentavos,
@@ -61,7 +63,23 @@ class _TradeOperationSheetState extends State<TradeOperationSheet> {
     return ((_precoEditado ?? 0) * 100).round();
   }
 
-  int get _totalCentavos => _quantidade * _precoUnitarioCentavos;
+  int get _precoUnitarioPrecisoCentavos {
+    if (widget.editarPreco) {
+      return _precoUnitarioCentavos * pricePrecisionScale;
+    }
+
+    final precoPreciso = widget.precoReferenciaPrecisoCentavos ?? 0;
+    if (precoPreciso > 0) {
+      return precoPreciso;
+    }
+
+    return widget.precoReferenciaCentavos * pricePrecisionScale;
+  }
+
+  int get _totalPrecisoCentavos => _quantidade * _precoUnitarioPrecisoCentavos;
+
+  int get _totalCentavos =>
+      (_totalPrecisoCentavos / pricePrecisionScale).round();
 
   @override
   void initState() {
@@ -104,7 +122,7 @@ class _TradeOperationSheetState extends State<TradeOperationSheet> {
           const SizedBox(height: 16),
           _buildResumo(
             'Preco de mercado',
-            _formatarCentavos(widget.precoReferenciaCentavos),
+            _formatarPrecisoCentavos(_precoUnitarioPrecisoCentavos),
           ),
           if (widget.editarPreco) ...[
             const SizedBox(height: 8),
@@ -320,8 +338,15 @@ class _TradeOperationSheetState extends State<TradeOperationSheet> {
     return 'R\$ ${reais.toStringAsFixed(2).replaceAll('.', ',')}';
   }
 
+  String _formatarPrecisoCentavos(int precisoCentavos) {
+    final reais = precisoCentavos / (100 * pricePrecisionScale);
+    return 'R\$ ${reais.toStringAsFixed(4).replaceAll('.', ',')}';
+  }
+
   String _formatarEntradaCentavos(int centavos) {
     final reais = centavos / 100;
     return reais.toStringAsFixed(2).replaceAll('.', ',');
   }
 }
+
+const int pricePrecisionScale = 10000;
