@@ -7,6 +7,15 @@ import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {findStartupById} from "../repositories/startupRepository";
 import {mapStartupDocument} from "../shared/startupMapper";
 
+type StartupQuestion = {
+  questionType?: unknown;
+  uid?: unknown;
+};
+
+function isStartupQuestion(value: unknown): value is StartupQuestion {
+  return value !== null && typeof value === "object";
+}
+
 export const getStartupById = onRequest(async (req, res) => {
   if (handleCorsPreflight(req, res)) {
     return;
@@ -48,16 +57,23 @@ export const getStartupById = onRequest(async (req, res) => {
 
     const startup = mapStartupDocument(doc);
 
-    startup.perguntas_respostas = startup.perguntas_respostas.filter((pergunta: any) => {
+    startup.perguntas_respostas = startup.perguntas_respostas.filter(
+      (pergunta: unknown) => {
+        if (!isStartupQuestion(pergunta)) {
+          return false;
+        }
 
-      // publica -> todos podem ver
-      if (pergunta.questionType === "public") {
-        return true;
-      }
+        if (pergunta.questionType === "publica") {
+          return true;
+        }
 
-      // privada -> apenas dono pode ver
-      return pergunta.uid === uid;
-    });
+        if (pergunta.questionType === "public") {
+          return true;
+        }
+
+        return pergunta.uid === uid;
+      },
+    );
 
     if (startup.status !== "ativa") {
       return sendJson(res, 404, {

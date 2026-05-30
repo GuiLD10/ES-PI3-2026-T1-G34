@@ -25,7 +25,6 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
   bool _isVendaMercadoLoading = false;
   String? _erro;
   String? _startupId;
-  String? _authorID;
   final TextEditingController _perguntaController = TextEditingController();
   bool _isPrivateQuestion = false;
   bool _isInvestor = false;
@@ -786,7 +785,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
                         _isPrivateQuestion = value;
                       });
                     },
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                   ),
                   Text(
                     'Private',

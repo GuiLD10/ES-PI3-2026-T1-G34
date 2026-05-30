@@ -19,7 +19,6 @@ interface TransactionData {
 }
 
 export const getStartupTrend = onRequest(async (req, res) => {
-
   if (handleCorsPreflight(req, res)) {
     return;
   }
@@ -32,7 +31,6 @@ export const getStartupTrend = onRequest(async (req, res) => {
   }
 
   try {
-
     const startupId = String(req.query.startup_id ?? "").trim();
 
     if (!startupId) {

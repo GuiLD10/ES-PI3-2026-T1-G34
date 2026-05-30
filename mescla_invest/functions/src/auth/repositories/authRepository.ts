@@ -5,7 +5,7 @@
 import {UserRecord} from "firebase-admin/auth";
 import {HttpsError} from "firebase-functions/https";
 import {auth} from "../../shared/firebase";
-import * as admin from "firebase-admin"
+import * as admin from "firebase-admin";
 import {FirebaseLoginResponse} from "../../shared/types";
 
 function getFirebaseWebApiKey(): string {
@@ -20,9 +20,6 @@ function getFirebaseWebApiKey(): string {
 
 export async function signInWithPassword(email: string, senha: string) {
   const apiKey = getFirebaseWebApiKey();
-  console.log("EMAIL:", email);
-  console.log("SENHA:", senha);
-  console.log("API KEY:", apiKey);
 
   const url =
     "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword" +
@@ -41,14 +38,13 @@ export async function signInWithPassword(email: string, senha: string) {
   const data = (await response.json()) as FirebaseLoginResponse;
 
   if (!response.ok || data.error) {
-    console.log(data.error);
     throw new HttpsError("unauthenticated", "E-mail ou senha incorretos.");
   }
 
   return data;
 }
 
-export async function getUserInformations(localID:string){
+export async function getUserInformations(localID: string) {
   return await admin.auth().getUser(localID);
 }
 

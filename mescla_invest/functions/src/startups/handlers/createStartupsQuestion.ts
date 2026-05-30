@@ -1,14 +1,13 @@
-//Autor:Henrique Soares Cunha
-//RA:23013359
-//Descrição:conecta com o banco e busca as perguntas da startups
+// Autor: Henrique Soares Cunha
+// RA: 23013359
+// Descrição: conecta com o banco e salva perguntas das startups
 
 import {onRequest} from "firebase-functions/v2/https";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
-import { FieldValue } from "firebase-admin/firestore";
-import { findStartupRef } from "../repositories/startupRepository";
+import {FieldValue} from "firebase-admin/firestore";
+import {findStartupRef} from "../repositories/startupRepository";
 
 export const createStartupQuestion = onRequest(async (req, res) => {
-
   if (handleCorsPreflight(req, res)) {
     return;
   }
@@ -20,7 +19,7 @@ export const createStartupQuestion = onRequest(async (req, res) => {
     });
   }
 
-  const { startupId, authorName, questionType, question , uid } = req.body;
+  const {startupId, authorName, questionType, question, uid} = req.body;
 
   // Validações
   if (typeof startupId !== "string" || startupId.trim() === "") {
@@ -30,7 +29,7 @@ export const createStartupQuestion = onRequest(async (req, res) => {
     });
   }
 
-  if (typeof uid !== "string" || uid.trim() === ""){
+  if (typeof uid !== "string" || uid.trim() === "") {
     return sendJson(res, 400, {
       success: false,
       message: "uid invalido.",
@@ -55,7 +54,6 @@ export const createStartupQuestion = onRequest(async (req, res) => {
     questionType !== "publica" &&
     questionType !== "privada"
   ) {
-    console.log(questionType);
     return sendJson(res, 400, {
       success: false,
       message: "Tipo da pergunta inválido.",
@@ -63,7 +61,6 @@ export const createStartupQuestion = onRequest(async (req, res) => {
   }
 
   try {
-
     const startupRef = await findStartupRef(startupId);
 
     const startupDoc = await startupRef.get();
@@ -89,8 +86,7 @@ export const createStartupQuestion = onRequest(async (req, res) => {
 
       uid: uid.trim(),
 
-      // seção de respostas
-      resposta: [{resposta:"resposta padrão para teste" , nome_autor: "Henrique" , id: crypto.randomUUID()}],
+      resposta: [],
     };
 
     // adiciona no array "questions"

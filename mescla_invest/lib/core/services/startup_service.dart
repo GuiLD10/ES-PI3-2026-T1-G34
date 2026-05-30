@@ -40,7 +40,10 @@ class StartupService {
 
     final data = await _getJson(
       'startups-getStartupById',
-      queryParameters: {'startupId': startupId, 'uid': SessionManager.uid.toString(),},
+      queryParameters: {
+        'startupId': startupId,
+        'uid': SessionManager.uid.toString(),
+      },
     );
     final startupJson = data['data'];
 
@@ -52,6 +55,7 @@ class StartupService {
 
     return StartupModel.fromJson(Map<String, dynamic>.from(startupJson));
   }
+
   static Future<void> criarPerguntaStartup({
     required String startupId,
     required String authorName,
@@ -59,50 +63,38 @@ class StartupService {
     required String questionType,
     required String uid,
   }) async {
-
     // Validacao do ID da startup
     if (startupId.trim().isEmpty) {
-      throw const StartupServiceException(
-        'ID da startup e obrigatorio.',
-      );
+      throw const StartupServiceException('ID da startup e obrigatorio.');
     }
 
     // Validacao do nome do autor
     if (authorName.trim().isEmpty) {
-      throw const StartupServiceException(
-        'Nome do autor e obrigatorio.',
-      );
+      throw const StartupServiceException('Nome do autor e obrigatorio.');
     }
 
     // Validacao da pergunta
     if (question.trim().isEmpty) {
-      throw const StartupServiceException(
-        'Pergunta obrigatoria.',
-      );
+      throw const StartupServiceException('Pergunta obrigatoria.');
     }
 
-    if (uid.trim().isEmpty){
-      throw const StartupServiceException(
-        'user id obrigatório',
-      );
+    if (uid.trim().isEmpty) {
+      throw const StartupServiceException('user id obrigatório');
     }
 
     // Chama a Firebase Function usando _postJson
-    final data = await _postJson(
-      'startups-createStartupQuestion',
-      {
-        'startupId': startupId.trim(),
+    final data = await _postJson('startups-createStartupQuestion', {
+      'startupId': startupId.trim(),
 
-        'authorName': authorName.trim(),
+      'authorName': authorName.trim(),
 
-        'question': question.trim(),
+      'question': question.trim(),
 
-        // publica ou privada
-        'questionType': questionType,
+      // publica ou privada
+      'questionType': questionType,
 
-        'uid': uid.trim(),
-      },
-    );
+      'uid': uid.trim(),
+    });
 
     // Verifica se deu erro
     if (data['success'] != true) {
@@ -121,9 +113,7 @@ class StartupService {
 
     final data = await _getJson(
       'wallet-getPortfolio',
-      queryParameters: {
-        'uid': uid,
-      },
+      queryParameters: {'uid': uid},
     );
 
     final portfolioData = data['data'];
@@ -140,17 +130,14 @@ class StartupService {
 
     for (final ativo in ativos) {
       if (ativo is Map) {
-        final startupIdAtivo =
-        ativo['startup_id']?.toString();
+        final startupIdAtivo = ativo['startup_id']?.toString();
 
         final quantidadeDisponivel =
-        (ativo['quantidade_disponivel'] ?? 0) as int;
+            (ativo['quantidade_disponivel'] ?? 0) as int;
 
-        final quantidadeBloqueada =
-        (ativo['quantidade_bloqueada'] ?? 0) as int;
+        final quantidadeBloqueada = (ativo['quantidade_bloqueada'] ?? 0) as int;
 
-        final quantidadeTotal =
-            quantidadeDisponivel + quantidadeBloqueada;
+        final quantidadeTotal = quantidadeDisponivel + quantidadeBloqueada;
 
         if (startupIdAtivo == startupId && quantidadeTotal > 0) {
           return true;
@@ -191,27 +178,22 @@ class StartupService {
       return data;
     } on StartupServiceException {
       rethrow;
-    } catch (e, stackTrace) {
-      print('ERRO REAL: $e');
-      print(stackTrace);
-
-      throw StartupServiceException(
-        e.toString(),
-      );
+    } catch (e) {
+      throw StartupServiceException(e.toString());
     }
   }
 
   static Future<Map<String, dynamic>> _postJson(
-      String functionName,
-      Map<String, dynamic> body,
-      ) async {
+    String functionName,
+    Map<String, dynamic> body,
+  ) async {
     try {
       final response = await http
           .post(
-        Uri.parse('$_functionsBaseUrl/$functionName'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      )
+            Uri.parse('$_functionsBaseUrl/$functionName'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
           .timeout(const Duration(seconds: 15));
 
       final decoded = jsonDecode(response.body);
@@ -228,7 +210,7 @@ class StartupService {
       return {
         'success': false,
         'message':
-        'Erro de conexão. Verifique se o emulador das Functions está rodando.',
+            'Erro de conexão. Verifique se o emulador das Functions está rodando.',
       };
     }
   }

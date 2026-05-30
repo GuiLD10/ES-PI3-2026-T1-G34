@@ -5,7 +5,10 @@
 import {onRequest} from "firebase-functions/v2/https";
 import {HttpsError} from "firebase-functions/https";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
-import {signInWithPassword , getUserInformations} from "../repositories/authRepository";
+import {
+  getUserInformations,
+  signInWithPassword,
+} from "../repositories/authRepository";
 import {LoginBody} from "../types/authTypes";
 
 export const loginUser = onRequest(async (req, res) => {
@@ -32,13 +35,13 @@ export const loginUser = onRequest(async (req, res) => {
   try {
     const data = await signInWithPassword(email, senha);
 
-    if (!data.localId){
+    if (!data.localId) {
       return sendJson(res, 401, {
         success: false,
         message: "não foi possivel pegar localID",
         uid: data.localId,
         token: data.idToken,
-      })
+      });
     }
 
     const user = await getUserInformations(data.localId);

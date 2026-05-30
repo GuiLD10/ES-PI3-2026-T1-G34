@@ -29,9 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  void _salvar() {
-    // TODO: integrar com AuthService para atualizar nome e senha
-  }
+  void _salvar() {}
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +58,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.fromLTRB(20, 0, 32, 0),
       child: Row(
         children: [
-          // Botão de voltar adicionado aqui
           IconButton(
             onPressed: () => Navigator.pop(context),
             icon: Icon(Icons.arrow_back, color: AppColors.primary),
@@ -71,16 +68,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             'assets/images/logo.png',
             width: 100,
             fit: BoxFit.contain,
-          ),   
+          ),
           const Spacer(),
           CircleAvatar(
             radius: 18,
             backgroundColor: Colors.white,
-            child: Icon(
-              Icons.person,
-              color: AppColors.primary,
-              size: 20,
-            ),
+            child: Icon(Icons.person, color: AppColors.primary, size: 20),
           ),
         ],
       ),
@@ -132,10 +125,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 12),
         Text(
           'Nome do Usuário',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 13,
-          ),
+          style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
         ),
         const SizedBox(height: 6),
         _buildTextField(controller: _nomeController, hint: ''),
@@ -207,10 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             child: const Text(
               'Salvar',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -231,9 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: const Icon(Icons.security),
             label: const Text(
               '2FA',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -257,8 +242,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         filled: true,
         fillColor: Colors.white,
         suffixIcon: suffixIcon,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
@@ -274,9 +261,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-  Future<void> _mostrarPopup2FA() async {
 
-    final telefoneUsuario = await AuthService.getTelefoneUsuario() ?? 'Telefone não encontrado';
+  void _mostrarPopup2FA() {
+    final telefoneUsuario =
+        AuthService.getTelefoneUsuario() ?? 'Telefone não encontrado';
 
     showDialog(
       context: context,
@@ -296,9 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'O código de autenticação será enviado para:',
-              ),
+              const Text('O código de autenticação será enviado para:'),
 
               const SizedBox(height: 16),
 
@@ -335,9 +321,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-
-                // Aqui depois você chama a function do Firebase
-                // para ativar o MFA
               },
               child: const Text('Ativar'),
             ),
