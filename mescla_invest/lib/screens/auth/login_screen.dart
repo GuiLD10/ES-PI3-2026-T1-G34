@@ -35,6 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final resultado = await AuthService.login(
       email: _emailController.text,
       senha: _senhaController.text,
+      continuarConectado: _continuarConectado,
     );
 
     if (!mounted) return;

@@ -3,6 +3,7 @@
 // Descrição: conecta com o banco e salva perguntas das startups
 
 import {onRequest} from "firebase-functions/v2/https";
+import {authenticateRequest, AuthRequestError} from "../../shared/auth";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {FieldValue} from "firebase-admin/firestore";
 import {findStartupRef} from "../repositories/startupRepository";
@@ -19,20 +20,13 @@ export const createStartupQuestion = onRequest(async (req, res) => {
     });
   }
 
-  const {startupId, authorName, questionType, question, uid} = req.body;
+  const {startupId, authorName, questionType, question} = req.body;
 
   // Validações
   if (typeof startupId !== "string" || startupId.trim() === "") {
     return sendJson(res, 400, {
       success: false,
       message: "startupId inválido.",
-    });
-  }
-
-  if (typeof uid !== "string" || uid.trim() === "") {
-    return sendJson(res, 400, {
-      success: false,
-      message: "uid invalido.",
     });
   }
 
@@ -61,6 +55,7 @@ export const createStartupQuestion = onRequest(async (req, res) => {
   }
 
   try {
+    const user = await authenticateRequest(req);
     const startupRef = await findStartupRef(startupId);
 
     const startupDoc = await startupRef.get();
@@ -84,7 +79,7 @@ export const createStartupQuestion = onRequest(async (req, res) => {
 
       createdAt: new Date().toISOString(),
 
-      uid: uid.trim(),
+      uid: user.uid,
 
       resposta: [],
     };
@@ -100,6 +95,13 @@ export const createStartupQuestion = onRequest(async (req, res) => {
       data: newQuestion,
     });
   } catch (error: unknown) {
+    if (error instanceof AuthRequestError) {
+      return sendJson(res, error.statusCode, {
+        success: false,
+        message: error.message,
+      });
+    }
+
     console.error("Erro ao criar pergunta:", error);
 
     return sendJson(res, 500, {

@@ -95,8 +95,6 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
 
         authorName: SessionManager.name.toString(),
 
-        uid: SessionManager.uid.toString(),
-
         question: _perguntaController.text,
 
         questionType: _isPrivateQuestion ? 'privada' : 'publica',

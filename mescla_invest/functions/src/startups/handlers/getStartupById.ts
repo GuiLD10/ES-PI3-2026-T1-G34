@@ -3,6 +3,7 @@
 // Descrição: Recebe a requisição http de buscar startup pelo id e trata ela
 
 import {onRequest} from "firebase-functions/v2/https";
+import {authenticateRequest, AuthRequestError} from "../../shared/auth";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {
   findStartupById,
@@ -33,8 +34,6 @@ export const getStartupById = onRequest(async (req, res) => {
 
   const startupId = req.query.startupId;
 
-  const uid = typeof req.query.uid === "string" ? req.query.uid.trim() : "";
-
   if (typeof startupId !== "string") {
     return sendJson(res, 400, {
       success: false,
@@ -49,6 +48,7 @@ export const getStartupById = onRequest(async (req, res) => {
   }
 
   try {
+    const user = await authenticateRequest(req);
     const doc = await findStartupById(startupId);
 
     if (!doc.exists) {
@@ -76,7 +76,7 @@ export const getStartupById = onRequest(async (req, res) => {
           return true;
         }
 
-        return pergunta.uid === uid;
+        return pergunta.uid === user.uid;
       },
     );
 
@@ -92,6 +92,13 @@ export const getStartupById = onRequest(async (req, res) => {
       data: startup,
     });
   } catch (error: unknown) {
+    if (error instanceof AuthRequestError) {
+      return sendJson(res, error.statusCode, {
+        success: false,
+        message: error.message,
+      });
+    }
+
     console.error("Erro ao buscar startup:", error);
     return sendJson(res, 500, {
       success: false,

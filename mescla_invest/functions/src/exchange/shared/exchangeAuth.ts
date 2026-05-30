@@ -2,42 +2,42 @@
 // RA: 22010825
 
 import * as http from "http";
-import {auth} from "../../shared/firebase";
+import {
+  authenticateRequest,
+  AuthRequestError,
+  extractBearerToken as extractSharedBearerToken,
+} from "../../shared/auth";
 import {AuthenticatedExchangeUser} from "../types/exchangeTypes";
 import {ExchangeError} from "./exchangeErrors";
 
 export function extractBearerToken(
   authorizationHeader: string | string[] | undefined,
 ): string {
-  const header = Array.isArray(authorizationHeader) ?
-    authorizationHeader[0] :
-    authorizationHeader;
+  try {
+    return extractSharedBearerToken(authorizationHeader);
+  } catch (error) {
+    if (error instanceof AuthRequestError) {
+      throw new ExchangeError(error.statusCode, error.message);
+    }
 
-  if (!header) {
-    throw new ExchangeError(401, "Token de autenticacao nao informado.");
+    throw error;
   }
-
-  const [type, token] = header.trim().split(/\s+/);
-
-  if (type !== "Bearer" || !token) {
-    throw new ExchangeError(401, "Token de autenticacao invalido.");
-  }
-
-  return token;
 }
 
 export async function authenticateExchangeUser(
   req: http.IncomingMessage,
 ): Promise<AuthenticatedExchangeUser> {
-  const token = extractBearerToken(req.headers.authorization);
-
   try {
-    const decodedToken = await auth.verifyIdToken(token);
+    const user = await authenticateRequest(req);
     return {
-      uid: decodedToken.uid,
-      email: decodedToken.email,
+      uid: user.uid,
+      email: user.email,
     };
-  } catch {
-    throw new ExchangeError(401, "Token de autenticacao expirado ou invalido.");
+  } catch (error) {
+    if (error instanceof AuthRequestError) {
+      throw new ExchangeError(error.statusCode, error.message);
+    }
+
+    throw error;
   }
 }

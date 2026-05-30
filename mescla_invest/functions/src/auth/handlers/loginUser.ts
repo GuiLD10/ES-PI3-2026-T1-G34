@@ -51,6 +51,7 @@ export const loginUser = onRequest(async (req, res) => {
       message: "Login realizado com sucesso!",
       uid: data.localId,
       token: data.idToken,
+      refreshToken: data.refreshToken,
       name: user.displayName,
       email: user.email,
       telefone: user.phoneNumber,

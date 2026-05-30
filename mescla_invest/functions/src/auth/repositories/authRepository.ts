@@ -6,7 +6,10 @@ import {UserRecord} from "firebase-admin/auth";
 import {HttpsError} from "firebase-functions/https";
 import {auth} from "../../shared/firebase";
 import * as admin from "firebase-admin";
-import {FirebaseLoginResponse} from "../../shared/types";
+import {
+  FirebaseLoginResponse,
+  FirebaseRefreshTokenResponse,
+} from "../../shared/types";
 
 function getFirebaseWebApiKey(): string {
   const apiKey = process.env.WEB_API_KEY;
@@ -39,6 +42,29 @@ export async function signInWithPassword(email: string, senha: string) {
 
   if (!response.ok || data.error) {
     throw new HttpsError("unauthenticated", "E-mail ou senha incorretos.");
+  }
+
+  return data;
+}
+
+export async function refreshIdToken(refreshToken: string) {
+  const apiKey = getFirebaseWebApiKey();
+  const response = await fetch(
+    "https://securetoken.googleapis.com/v1/token" + `?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: {"Content-Type": "application/x-www-form-urlencoded"},
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+      }).toString(),
+    },
+  );
+
+  const data = (await response.json()) as FirebaseRefreshTokenResponse;
+
+  if (!response.ok || data.error) {
+    throw new HttpsError("unauthenticated", "Sessao expirada ou invalida.");
   }
 
   return data;

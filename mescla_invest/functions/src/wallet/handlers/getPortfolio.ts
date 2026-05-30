@@ -4,6 +4,7 @@
 // com ativos e historico de precos.
 
 import {onRequest} from "firebase-functions/v2/https";
+import {authenticateRequest, AuthRequestError} from "../../shared/auth";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {db} from "../../shared/firebase";
 import {getStartupMarketPrices} from "../../shared/startupPricing";
@@ -25,19 +26,9 @@ export const getPortfolio = onRequest(async (req, res) => {
     });
   }
 
-  const uid = typeof req.query.uid === "string" ?
-    req.query.uid.trim() :
-    "";
-
-  if (!uid) {
-    return sendJson(res, 400, {
-      success: false,
-      message: "Parametro uid e obrigatorio.",
-    });
-  }
-
   try {
-    const ativos = await findAtivosByUid(uid);
+    const user = await authenticateRequest(req);
+    const ativos = await findAtivosByUid(user.uid);
 
     const portfolio: PortfolioAtivoResponse[] = await Promise.all(
       ativos.map(async (ativo) => {
@@ -72,6 +63,13 @@ export const getPortfolio = onRequest(async (req, res) => {
       data: {ativos: portfolio},
     });
   } catch (error: unknown) {
+    if (error instanceof AuthRequestError) {
+      return sendJson(res, error.statusCode, {
+        success: false,
+        message: error.message,
+      });
+    }
+
     console.error("Erro ao buscar portfolio:", error);
     return sendJson(res, 500, {
       success: false,

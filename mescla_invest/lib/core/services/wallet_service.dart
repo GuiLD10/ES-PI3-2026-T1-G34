@@ -23,10 +23,7 @@ class WalletService {
   );
 
   static Future<WalletModel> buscarCarteira(String uid) async {
-    final data = await _getJson(
-      'wallet-getWallet',
-      queryParameters: {'uid': uid},
-    );
+    final data = await _getJson('wallet-getWallet');
     final walletJson = data['data'];
 
     if (walletJson is! Map) {
@@ -37,10 +34,7 @@ class WalletService {
   }
 
   static Future<List<TransactionModel>> buscarTransacoes(String uid) async {
-    final data = await _getJson(
-      'wallet-getTransacoes',
-      queryParameters: {'uid': uid},
-    );
+    final data = await _getJson('wallet-getTransacoes');
     final transacoesJson = data['data'];
 
     if (transacoesJson is! List) {
@@ -59,10 +53,7 @@ class WalletService {
   }
 
   static Future<List<AtivoModel>> buscarPortfolio(String uid) async {
-    final data = await _getJson(
-      'wallet-getPortfolio',
-      queryParameters: {'uid': uid},
-    );
+    final data = await _getJson('wallet-getPortfolio');
     final portfolioJson = data['data'];
 
     if (portfolioJson is! Map) {
@@ -87,13 +78,15 @@ class WalletService {
       final response = await http
           .get(
             _functionUri(functionName, queryParameters),
-            headers: {'Content-Type': 'application/json'},
+            headers: AuthService.headersAutenticados(),
           )
           .timeout(const Duration(seconds: 15));
 
       return _validateResponse(response, 'Erro ao buscar dados da carteira.');
     } on WalletServiceException {
       rethrow;
+    } on AuthServiceException catch (e) {
+      throw WalletServiceException(e.message);
     } catch (_) {
       throw WalletServiceException(
         'Erro de conexao. Verifique se o emulador das Functions esta rodando.',

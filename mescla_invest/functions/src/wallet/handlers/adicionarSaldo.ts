@@ -3,7 +3,7 @@
 // Descricao: Recebe a requisicao HTTP para adicionar saldo a carteira
 
 import {onRequest} from "firebase-functions/v2/https";
-import {auth} from "../../shared/firebase";
+import {authenticateRequest, AuthRequestError} from "../../shared/auth";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {
   adicionarSaldoDisponivel,
@@ -22,9 +22,9 @@ export const adicionarSaldo = onRequest(async (req, res) => {
   }
 
   try {
-    const uid = await authenticateUser(req.headers.authorization);
+    const user = await authenticateRequest(req);
     const valorCentavos = parseValorCentavos(req.body?.valor);
-    const updated = await adicionarSaldoDisponivel(uid, valorCentavos);
+    const updated = await adicionarSaldoDisponivel(user.uid, valorCentavos);
 
     if (!updated) {
       return sendJson(res, 404, {
@@ -38,7 +38,10 @@ export const adicionarSaldo = onRequest(async (req, res) => {
       message: "Saldo adicionado com sucesso.",
     });
   } catch (error) {
-    if (error instanceof WalletRequestError) {
+    if (
+      error instanceof WalletRequestError ||
+      error instanceof AuthRequestError
+    ) {
       return sendJson(res, error.statusCode, {
         success: false,
         message: error.message,
@@ -52,34 +55,6 @@ export const adicionarSaldo = onRequest(async (req, res) => {
     });
   }
 });
-
-async function authenticateUser(
-  authorizationHeader: string | string[] | undefined,
-): Promise<string> {
-  const header = Array.isArray(authorizationHeader) ?
-    authorizationHeader[0] :
-    authorizationHeader;
-
-  if (!header) {
-    throw new WalletRequestError(401, "Token de autenticacao nao informado.");
-  }
-
-  const [type, token] = header.trim().split(/\s+/);
-
-  if (type !== "Bearer" || !token) {
-    throw new WalletRequestError(401, "Token de autenticacao invalido.");
-  }
-
-  try {
-    const decodedToken = await auth.verifyIdToken(token);
-    return decodedToken.uid;
-  } catch {
-    throw new WalletRequestError(
-      401,
-      "Token de autenticacao expirado ou invalido.",
-    );
-  }
-}
 
 function parseValorCentavos(value: unknown): number {
   const valor = typeof value === "string" ?

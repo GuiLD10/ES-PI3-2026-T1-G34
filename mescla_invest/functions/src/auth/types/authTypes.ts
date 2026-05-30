@@ -19,3 +19,7 @@ export interface LoginBody {
 export interface ForgotPasswordBody {
   email: string;
 }
+
+export interface RefreshSessionBody {
+  refreshToken: string;
+}

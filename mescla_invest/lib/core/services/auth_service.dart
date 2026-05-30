@@ -41,18 +41,16 @@ class AuthService {
     });
 
     if (response['success'] == true) {
-
-      _storeSession(response);
-
+      await _storeSession(response);
     }
 
     return response;
-
   }
 
   static Future<Map<String, dynamic>> login({
     required String email,
     required String senha,
+    bool continuarConectado = false,
   }) async {
     final response = await _postJson('authentication-loginUser', {
       'email': email,
@@ -60,10 +58,38 @@ class AuthService {
     });
 
     if (response['success'] == true) {
-      _storeSession(response);
+      await _storeSession(response, persistir: continuarConectado);
     }
 
     return response;
+  }
+
+  static Future<bool> restaurarSessao() async {
+    final refreshToken = await _carregarRefreshTokenPersistente();
+
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return false;
+    }
+
+    final response = await _postJson('authentication-refreshSession', {
+      'refreshToken': refreshToken,
+    });
+
+    if (response['success'] != true) {
+      await clearSession();
+      return false;
+    }
+
+    await _storeSession(response, persistir: true);
+    return isAuthenticated;
+  }
+
+  static Future<String?> _carregarRefreshTokenPersistente() async {
+    try {
+      return await SessionManager.carregarRefreshTokenPersistente();
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<Map<String, dynamic>> recuperarSenha({
@@ -85,10 +111,11 @@ class AuthService {
     };
   }
 
-  static void clearSession() {
+  static Future<void> clearSession() async {
     _uid = null;
     _token = null;
     SessionManager.limparSessao();
+    await SessionManager.limparSessaoPersistente();
   }
 
   static Future<Map<String, dynamic>> _postJson(
@@ -123,19 +150,35 @@ class AuthService {
     }
   }
 
-  static void _storeSession(Map<String, dynamic> response) {
+  static Future<void> _storeSession(
+    Map<String, dynamic> response, {
+    bool persistir = false,
+  }) async {
     final uid = response['uid']?.toString().trim();
     final token = response['token']?.toString().trim();
+    final refreshToken = response['refreshToken']?.toString().trim();
     final name = response['name']?.toString().trim();
     final telefone = response['telefone']?.toString().trim();
 
-    if (uid == null || uid.isEmpty || token == null || token.isEmpty || name == null || name.isEmpty) {
+    if (uid == null ||
+        uid.isEmpty ||
+        token == null ||
+        token.isEmpty ||
+        name == null ||
+        name.isEmpty) {
       return;
     }
 
     _uid = uid;
     _token = token;
-    SessionManager.salvarSessao(uid: uid, token: token, name: name , telefone:  telefone ?? '');
+    await SessionManager.salvarSessao(
+      uid: uid,
+      token: token,
+      name: name,
+      telefone: telefone ?? '',
+      refreshToken: refreshToken,
+      persistir: persistir,
+    );
   }
 
   static String? getTelefoneUsuario() {

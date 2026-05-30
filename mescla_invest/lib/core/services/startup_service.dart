@@ -5,9 +5,9 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:mescla_invest/core/services/session_manager.dart';
 
 import '../../models/startup_model.dart';
+import 'auth_service.dart';
 
 class StartupService {
   static const String _functionsBaseUrl = String.fromEnvironment(
@@ -40,10 +40,8 @@ class StartupService {
 
     final data = await _getJson(
       'startups-getStartupById',
-      queryParameters: {
-        'startupId': startupId,
-        'uid': SessionManager.uid.toString(),
-      },
+      queryParameters: {'startupId': startupId},
+      autenticado: true,
     );
     final startupJson = data['data'];
 
@@ -61,7 +59,6 @@ class StartupService {
     required String authorName,
     required String question,
     required String questionType,
-    required String uid,
   }) async {
     // Validacao do ID da startup
     if (startupId.trim().isEmpty) {
@@ -78,10 +75,6 @@ class StartupService {
       throw const StartupServiceException('Pergunta obrigatoria.');
     }
 
-    if (uid.trim().isEmpty) {
-      throw const StartupServiceException('user id obrigatório');
-    }
-
     // Chama a Firebase Function usando _postJson
     final data = await _postJson('startups-createStartupQuestion', {
       'startupId': startupId.trim(),
@@ -92,8 +85,6 @@ class StartupService {
 
       // publica ou privada
       'questionType': questionType,
-
-      'uid': uid.trim(),
     });
 
     // Verifica se deu erro
@@ -105,16 +96,13 @@ class StartupService {
   }
 
   static Future<bool> isUserInvestor(String startupId) async {
-    final uid = SessionManager.uid.toString();
+    final uid = AuthService.currentUid;
 
-    if (uid.trim().isEmpty) {
+    if (uid == null || uid.trim().isEmpty) {
       return false;
     }
 
-    final data = await _getJson(
-      'wallet-getPortfolio',
-      queryParameters: {'uid': uid},
-    );
+    final data = await _getJson('wallet-getPortfolio', autenticado: true);
 
     final portfolioData = data['data'];
 
@@ -150,12 +138,15 @@ class StartupService {
   static Future<Map<String, dynamic>> _getJson(
     String functionName, {
     Map<String, String>? queryParameters,
+    bool autenticado = false,
   }) async {
     try {
       final response = await http
           .get(
             _functionUri(functionName, queryParameters),
-            headers: {'Content-Type': 'application/json'},
+            headers: autenticado
+                ? AuthService.headersAutenticados()
+                : {'Content-Type': 'application/json'},
           )
           .timeout(const Duration(seconds: 15));
 
@@ -178,6 +169,8 @@ class StartupService {
       return data;
     } on StartupServiceException {
       rethrow;
+    } on AuthServiceException catch (e) {
+      throw StartupServiceException(e.message);
     } catch (e) {
       throw StartupServiceException(e.toString());
     }
@@ -191,7 +184,7 @@ class StartupService {
       final response = await http
           .post(
             Uri.parse('$_functionsBaseUrl/$functionName'),
-            headers: {'Content-Type': 'application/json'},
+            headers: AuthService.headersAutenticados(),
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 15));
@@ -206,6 +199,8 @@ class StartupService {
       }
 
       return Map<String, dynamic>.from(decoded);
+    } on AuthServiceException catch (e) {
+      throw StartupServiceException(e.message);
     } catch (e) {
       return {
         'success': false,
