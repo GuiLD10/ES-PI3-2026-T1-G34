@@ -22,35 +22,41 @@ export interface StartupMarketPrices {
   totalTokens: number;
 }
 
+export interface StartupPricingOptions {
+  hasTransactions?: boolean;
+}
+
 export function getStartupMarketPrices(
   data: Record<string, unknown>,
+  options: StartupPricingOptions = {},
 ): StartupMarketPrices {
+  const hasTransactions = options.hasTransactions ?? true;
   const storedCurrentPrice = readNonNegativeInteger(
     data.preco_atual_centavos,
-  );
-  const storedPrimaryPrice = readNonNegativeInteger(
-    data.preco_primario_centavos,
   );
   const storedCurrentPrecisePrice = readNonNegativeInteger(
     data.preco_atual_preciso_centavos,
   );
-  const storedPrimaryPrecisePrice = readNonNegativeInteger(
-    data.preco_primario_preciso_centavos,
+  const primaryPricePreciseCents = calculateInitialMarketPricePreciseCents(
+    data,
   );
-  const primaryPriceCents = storedPrimaryPrice > 0 ?
-    storedPrimaryPrice :
-    calculateInitialMarketPriceCents(data);
-  const primaryPricePreciseCents = storedPrimaryPrecisePrice > 0 ?
-    storedPrimaryPrecisePrice :
-    centsToPreciseCents(primaryPriceCents);
-  const currentPricePreciseCents = storedCurrentPrecisePrice > 0 ?
-    storedCurrentPrecisePrice :
-    centsToPreciseCents(
-      storedCurrentPrice > 0 ? storedCurrentPrice : primaryPriceCents,
-    );
-  const currentPriceCents = storedCurrentPrice > 0 ?
-    storedCurrentPrice :
-    preciseCentsToDisplayCents(currentPricePreciseCents);
+  const primaryPriceCents = preciseCentsToDisplayCents(
+    primaryPricePreciseCents,
+  );
+  const hasStoredCurrentPrice =
+    storedCurrentPrecisePrice > 0 || storedCurrentPrice > 0;
+  const shouldUseStoredCurrentPrice =
+    hasTransactions && hasStoredCurrentPrice;
+  const currentPricePreciseCents = shouldUseStoredCurrentPrice ?
+    storedCurrentPrecisePrice > 0 ?
+      storedCurrentPrecisePrice :
+      centsToPreciseCents(storedCurrentPrice) :
+    primaryPricePreciseCents;
+  const currentPriceCents = shouldUseStoredCurrentPrice ?
+    storedCurrentPrice > 0 ?
+      storedCurrentPrice :
+      preciseCentsToDisplayCents(currentPricePreciseCents) :
+    primaryPriceCents;
 
   return {
     currentPriceCents,
@@ -64,22 +70,38 @@ export function getStartupMarketPrices(
 export function buildStartupPriceInitializationPatch(
   data: Record<string, unknown>,
   prices: StartupMarketPrices,
+  options: StartupPricingOptions = {},
 ): Record<string, number> {
+  const hasTransactions = options.hasTransactions ?? true;
   const patch: Record<string, number> = {};
 
-  if (readNonNegativeInteger(data.preco_primario_centavos) <= 0) {
+  if (
+    readNonNegativeInteger(data.preco_primario_centavos) !==
+    prices.primaryPriceCents
+  ) {
     patch.preco_primario_centavos = prices.primaryPriceCents;
   }
 
-  if (readNonNegativeInteger(data.preco_primario_preciso_centavos) <= 0) {
+  if (
+    readNonNegativeInteger(data.preco_primario_preciso_centavos) !==
+    prices.primaryPricePreciseCents
+  ) {
     patch.preco_primario_preciso_centavos = prices.primaryPricePreciseCents;
   }
 
-  if (readNonNegativeInteger(data.preco_atual_centavos) <= 0) {
+  const shouldOverwriteCurrentPrice = !hasTransactions;
+
+  if (
+    shouldOverwriteCurrentPrice ||
+    readNonNegativeInteger(data.preco_atual_centavos) <= 0
+  ) {
     patch.preco_atual_centavos = prices.currentPriceCents;
   }
 
-  if (readNonNegativeInteger(data.preco_atual_preciso_centavos) <= 0) {
+  if (
+    shouldOverwriteCurrentPrice ||
+    readNonNegativeInteger(data.preco_atual_preciso_centavos) <= 0
+  ) {
     patch.preco_atual_preciso_centavos = prices.currentPricePreciseCents;
   }
 
@@ -142,17 +164,20 @@ export function preciseCentsToDisplayCents(pricePreciseCents: number): number {
   return Math.max(1, Math.round(pricePreciseCents / PRICE_PRECISION_SCALE));
 }
 
-function calculateInitialMarketPriceCents(
+function calculateInitialMarketPricePreciseCents(
   data: Record<string, unknown>,
 ): number {
   const capitalReais = readNonNegativeInteger(data.capital_aportado);
   const tokens = readNonNegativeInteger(data.tokens_emitidos);
 
   if (capitalReais > 0 && tokens > 0) {
-    return Math.max(1, Math.round((capitalReais * 100) / tokens));
+    return Math.max(
+      PRICE_PRECISION_SCALE,
+      Math.round((capitalReais * 100 * PRICE_PRECISION_SCALE) / tokens),
+    );
   }
 
-  return DEFAULT_MARKET_PRICE_CENTS;
+  return centsToPreciseCents(DEFAULT_MARKET_PRICE_CENTS);
 }
 
 function readNonNegativeInteger(value: unknown): number {

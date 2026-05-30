@@ -73,7 +73,15 @@ export async function buyAtMarket(
       .collection(EXCHANGE_COLLECTIONS.startups)
       .doc(input.startupId);
     const startupDoc = await transaction.get(startupRef);
-    const startup = loadActiveStartupFromData(input.startupId, startupDoc);
+    const hasTransactions = await hasStartupTransactions(
+      transaction,
+      input.startupId,
+    );
+    const startup = loadActiveStartupFromData(
+      input.startupId,
+      startupDoc,
+      hasTransactions,
+    );
     const totalAmountPreciseCents = calculateTotalPreciseCents(
       input.quantity,
       startup.prices.currentPricePreciseCents,
@@ -88,6 +96,7 @@ export async function buyAtMarket(
     const pricePatch = buildStartupPriceInitializationPatch(
       startup.rawData,
       startup.prices,
+      {hasTransactions: startup.hasTransactions},
     );
     const nextPricePreciseCents = calculateMarketImpactPricePreciseCents(
       startup.prices.currentPricePreciseCents,
@@ -179,7 +188,15 @@ export async function sellAtMarket(
       .collection(EXCHANGE_COLLECTIONS.startups)
       .doc(input.startupId);
     const startupDoc = await transaction.get(startupRef);
-    const startup = loadActiveStartupFromData(input.startupId, startupDoc);
+    const hasTransactions = await hasStartupTransactions(
+      transaction,
+      input.startupId,
+    );
+    const startup = loadActiveStartupFromData(
+      input.startupId,
+      startupDoc,
+      hasTransactions,
+    );
     const totalAmountPreciseCents = calculateTotalPreciseCents(
       input.quantity,
       startup.prices.currentPricePreciseCents,
@@ -194,6 +211,7 @@ export async function sellAtMarket(
     const pricePatch = buildStartupPriceInitializationPatch(
       startup.rawData,
       startup.prices,
+      {hasTransactions: startup.hasTransactions},
     );
     const nextPricePreciseCents = calculateMarketImpactPricePreciseCents(
       startup.prices.currentPricePreciseCents,
@@ -418,25 +436,17 @@ async function loadActiveStartup(
     .collection(EXCHANGE_COLLECTIONS.startups)
     .doc(startupId);
   const doc = await transaction.get(startupRef);
-  const startup = loadActiveStartupFromData(startupId, doc);
-  const pricePatch = buildStartupPriceInitializationPatch(
-    startup.rawData,
-    startup.prices,
+  const hasTransactions = await hasStartupTransactions(
+    transaction,
+    startupId,
   );
-
-  if (Object.keys(pricePatch).length > 0) {
-    transaction.update(startupRef, {
-      ...pricePatch,
-      atualizado_em: fieldValue.serverTimestamp(),
-    });
-  }
-
-  return startup;
+  return loadActiveStartupFromData(startupId, doc, hasTransactions);
 }
 
 function loadActiveStartupFromData(
   startupId: string,
   doc: DocumentSnapshot,
+  hasTransactions: boolean,
 ): LoadedStartupPriceReference {
   if (!doc.exists) {
     throw new ExchangeError(404, "Startup nao encontrada.", "startup_id");
@@ -448,14 +458,29 @@ function loadActiveStartupFromData(
     throw new ExchangeError(404, "Startup nao encontrada.", "startup_id");
   }
 
-  const prices = getStartupMarketPrices(rawData);
+  const prices = getStartupMarketPrices(rawData, {hasTransactions});
 
   return {
     id: startupId,
     referencePriceCents: prices.currentPriceCents,
     prices,
     rawData,
+    hasTransactions,
   };
+}
+
+async function hasStartupTransactions(
+  transaction: Transaction,
+  startupId: string,
+) {
+  const snapshot = await transaction.get(
+    db
+      .collection(EXCHANGE_COLLECTIONS.transactions)
+      .where("startup_id", "==", startupId)
+      .limit(1),
+  );
+
+  return !snapshot.empty;
 }
 
 async function loadWallet(
@@ -680,4 +705,5 @@ interface CancellationOrder {
 interface LoadedStartupPriceReference extends StartupPriceReference {
   prices: StartupMarketPrices;
   rawData: Record<string, unknown>;
+  hasTransactions: boolean;
 }

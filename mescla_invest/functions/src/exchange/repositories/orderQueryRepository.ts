@@ -24,7 +24,10 @@ const TRANSACTIONS_LIMIT = 80;
 export async function getOrderBook(
   startupId: string,
 ): Promise<OrderBookResponse> {
-  const startup = await loadActiveStartup(startupId);
+  const [startup, hasTransactions] = await Promise.all([
+    loadActiveStartup(startupId),
+    hasStartupTransactions(startupId),
+  ]);
   const snapshot = await db
     .collection(EXCHANGE_COLLECTIONS.orders)
     .where("startup_id", "==", startupId)
@@ -49,12 +52,24 @@ export async function getOrderBook(
 
   return {
     startup_id: startupId,
-    preco_atual_centavos: getStartupMarketPrices(startup).currentPriceCents,
+    preco_atual_centavos: getStartupMarketPrices(startup, {
+      hasTransactions,
+    }).currentPriceCents,
     melhor_compra: buys[0] ?? null,
     melhor_venda: sells[0] ?? null,
     compras: buys,
     vendas: sells,
   };
+}
+
+async function hasStartupTransactions(startupId: string) {
+  const snapshot = await db
+    .collection(EXCHANGE_COLLECTIONS.transactions)
+    .where("startup_id", "==", startupId)
+    .limit(1)
+    .get();
+
+  return !snapshot.empty;
 }
 
 export async function listUserOrders(

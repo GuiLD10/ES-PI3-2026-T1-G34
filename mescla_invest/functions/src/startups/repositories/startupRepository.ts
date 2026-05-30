@@ -11,10 +11,17 @@ export async function listActiveStartups(): Promise<StartupData[]> {
     .collection("startups")
     .where("status", "==", "ativa")
     .get();
+  const startups = await Promise.all(
+    snapshot.docs.map(async (doc) => {
+      return mapStartupDocument(doc, {
+        hasTransactions: await hasStartupTransactions(doc.id),
+      });
+    }),
+  );
 
-  return snapshot.docs
-    .map(mapStartupDocument)
-    .sort((first, second) => first.nome.localeCompare(second.nome, "pt-BR"));
+  return startups.sort((first, second) => {
+    return first.nome.localeCompare(second.nome, "pt-BR");
+  });
 }
 
 export async function findStartupById(startupId: string) {
@@ -23,4 +30,14 @@ export async function findStartupById(startupId: string) {
 
 export async function findStartupRef( startupid : string) {
   return await db.collection("startups").doc(startupid);
+}
+
+export async function hasStartupTransactions(startupId: string) {
+  const snapshot = await db
+    .collection("transacoes")
+    .where("startup_id", "==", startupId)
+    .limit(1)
+    .get();
+
+  return !snapshot.empty;
 }

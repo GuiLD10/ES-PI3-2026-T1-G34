@@ -4,7 +4,10 @@
 
 import {onRequest} from "firebase-functions/v2/https";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
-import {findStartupById} from "../repositories/startupRepository";
+import {
+  findStartupById,
+  hasStartupTransactions,
+} from "../repositories/startupRepository";
 import {mapStartupDocument} from "../shared/startupMapper";
 
 type StartupQuestion = {
@@ -55,7 +58,9 @@ export const getStartupById = onRequest(async (req, res) => {
       });
     }
 
-    const startup = mapStartupDocument(doc);
+    const startup = mapStartupDocument(doc, {
+      hasTransactions: await hasStartupTransactions(startupId),
+    });
 
     startup.perguntas_respostas = startup.perguntas_respostas.filter(
       (pergunta: unknown) => {

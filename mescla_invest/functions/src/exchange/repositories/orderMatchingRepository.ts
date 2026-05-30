@@ -485,13 +485,29 @@ async function loadStartupMarketState(
     throw new ExchangeError(404, "Startup nao encontrada.");
   }
 
+  const hasTransactions = await hasStartupTransactions(transaction, startupId);
   const rawData = doc.data() ?? {};
 
   return {
     ref,
     rawData,
-    prices: getStartupMarketPrices(rawData),
+    prices: getStartupMarketPrices(rawData, {hasTransactions}),
+    hasTransactions,
   };
+}
+
+async function hasStartupTransactions(
+  transaction: Transaction,
+  startupId: string,
+) {
+  const snapshot = await transaction.get(
+    db
+      .collection(EXCHANGE_COLLECTIONS.transactions)
+      .where("startup_id", "==", startupId)
+      .limit(1),
+  );
+
+  return !snapshot.empty;
 }
 
 function buildStartupPriceUpdate(
@@ -527,6 +543,7 @@ function updateStartupPrice(
   const pricePatch = buildStartupPriceInitializationPatch(
     marketState.rawData,
     marketState.prices,
+    {hasTransactions: marketState.hasTransactions},
   );
 
   transaction.update(marketState.ref, {
@@ -687,6 +704,7 @@ interface StartupMarketState {
   ref: DocumentReference;
   rawData: Record<string, unknown>;
   prices: StartupMarketPrices;
+  hasTransactions: boolean;
 }
 
 interface StartupPriceUpdate {

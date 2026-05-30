@@ -4,12 +4,18 @@
 
 import {DocumentSnapshot} from "firebase-admin/firestore";
 import {convertFirestoreValue} from "../../shared/firestoreConverters";
-import {getStartupMarketPrices} from "../../shared/startupPricing";
+import {
+  getStartupMarketPrices,
+  StartupPricingOptions,
+} from "../../shared/startupPricing";
 import {StartupData} from "../types/startupTypes";
 
-export function mapStartupDocument(doc: DocumentSnapshot): StartupData {
+export function mapStartupDocument(
+  doc: DocumentSnapshot,
+  options: StartupPricingOptions = {},
+): StartupData {
   const data = convertFirestoreValue(doc.data()) as Record<string, unknown>;
-  const prices = getStartupMarketPrices(data);
+  const prices = getStartupMarketPrices(data, options);
 
   return {
     id: doc.id,

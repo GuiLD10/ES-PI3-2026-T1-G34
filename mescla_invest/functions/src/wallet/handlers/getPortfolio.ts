@@ -47,7 +47,9 @@ export const getPortfolio = onRequest(async (req, res) => {
         ]);
 
         const startupData = startupDoc.data() ?? {};
-        const prices = getStartupMarketPrices(startupData);
+        const prices = getStartupMarketPrices(startupData, {
+          hasTransactions: historicoPrecos.length > 0,
+        });
 
         return {
           startup_id: ativo.startup_id,
