@@ -223,7 +223,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-<<<<<<< Updated upstream
             icon: Icon(
               AuthService.isMfaAtivo
                   ? Icons.security

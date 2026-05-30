@@ -67,31 +67,7 @@ class AuthService {
   }
 
   static Future<bool> restaurarSessao() async {
-    final refreshToken = await _carregarRefreshTokenPersistente();
-
-    if (refreshToken == null || refreshToken.isEmpty) {
-      return false;
-    }
-
-    final response = await _postJson('authentication-refreshSession', {
-      'refreshToken': refreshToken,
-    });
-
-    if (response['success'] != true) {
-      await clearSession();
-      return false;
-    }
-
-    await _storeSession(response, persistir: true);
-    return isAuthenticated;
-  }
-
-  static Future<String?> _carregarRefreshTokenPersistente() async {
-    try {
-      return await SessionManager.carregarRefreshTokenPersistente();
-    } catch (_) {
-      return null;
-    }
+    return false;
   }
 
   static Future<Map<String, dynamic>> recuperarSenha({
@@ -233,11 +209,10 @@ class AuthService {
     };
   }
 
-  static Future<void> clearSession() async {
+  static void clearSession() {
     _uid = null;
     _token = null;
     SessionManager.limparSessao();
-    await SessionManager.limparSessaoPersistente();
   }
 
   static Future<Map<String, dynamic>> _postJson(
@@ -278,7 +253,6 @@ class AuthService {
   }) async {
     final uid = response['uid']?.toString().trim();
     final token = response['token']?.toString().trim();
-    final refreshToken = response['refreshToken']?.toString().trim();
     final name = response['name']?.toString().trim();
     final telefone = response['telefone']?.toString().trim();
     final mfaAtivo = response['requiresMfa'] == true;
