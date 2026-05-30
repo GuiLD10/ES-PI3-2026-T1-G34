@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/auth_service.dart';
+import 'otp_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,6 +43,26 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (resultado['success'] == true) {
+      // Verificar se o usuário tem MFA ativo
+      if (resultado['requiresMfa'] == true) {
+        String telefone = resultado['telefone']?.toString() ?? '';
+        telefone = telefone.replaceAll(RegExp(r'[^0-9+]'), '');
+        if (!telefone.startsWith('+')) {
+          telefone = '+55$telefone';
+        }
+
+        if (!mounted) return;
+        Navigator.pushNamed(
+          context,
+          '/otp-verification',
+          arguments: {
+            'telefone': telefone,
+            'motivo': OtpMotivo.login,
+          },
+        );
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(resultado['message'] ?? 'Login realizado com sucesso!'),

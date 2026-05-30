@@ -5,11 +5,9 @@
 import {onRequest} from "firebase-functions/v2/https";
 import {HttpsError} from "firebase-functions/https";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
-import {
-  getUserInformations,
-  signInWithPassword,
-} from "../repositories/authRepository";
+import {signInWithPassword, getUserInformations} from "../repositories/authRepository";
 import {LoginBody} from "../types/authTypes";
+import {db} from "../../shared/firebase";
 
 export const loginUser = onRequest(async (req, res) => {
   if (handleCorsPreflight(req, res)) {
@@ -46,6 +44,11 @@ export const loginUser = onRequest(async (req, res) => {
 
     const user = await getUserInformations(data.localId);
 
+    // Verificar se o usuário tem MFA ativo no Firestore
+    const userDoc = await db.collection("usuarios").doc(data.localId).get();
+    const userData = userDoc.data();
+    const mfaAtivo = userData?.mfaAtivo === true;
+
     return sendJson(res, 200, {
       success: true,
       message: "Login realizado com sucesso!",
@@ -54,7 +57,8 @@ export const loginUser = onRequest(async (req, res) => {
       refreshToken: data.refreshToken,
       name: user.displayName,
       email: user.email,
-      telefone: user.phoneNumber,
+      telefone: userData?.telefone ?? user.phoneNumber ?? "",
+      requiresMfa: mfaAtivo,
     });
   } catch (error) {
     console.error(error);

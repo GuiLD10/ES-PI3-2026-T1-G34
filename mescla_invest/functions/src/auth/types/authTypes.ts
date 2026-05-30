@@ -23,3 +23,8 @@ export interface ForgotPasswordBody {
 export interface RefreshSessionBody {
   refreshToken: string;
 }
+
+export interface ToggleMfaBody {
+  uid: string;
+  ativar: boolean;
+}

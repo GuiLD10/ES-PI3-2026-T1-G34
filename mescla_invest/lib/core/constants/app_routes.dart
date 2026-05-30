@@ -12,4 +12,5 @@ class AppRoutes {
   static const balcao = '/balcao';
   static const wallet = '/wallet';
   static const profile = '/profile';
+  static const otpVerification = '/otp-verification';
 }

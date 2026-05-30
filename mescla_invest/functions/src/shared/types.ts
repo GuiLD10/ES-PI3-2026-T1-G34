@@ -36,4 +36,6 @@ export interface ApiResponse {
   total_transacoes?: number;
   periodo?: string;
   telefone?: string;
+  requiresMfa?: boolean;
+  mfaAtivo?: boolean;
 }
