@@ -5,6 +5,8 @@ Aplicativo Flutter com backend em Firebase Functions.
 ## Requisitos
 
 - Flutter SDK configurado
+- Android SDK configurado
+- JDK 17 configurado no `JAVA_HOME`
 - Node.js 24
 - Firebase CLI atualizada com suporte a `nodejs24`
 - Acesso ao projeto Firebase `mesclainvest-d3745`
@@ -75,11 +77,15 @@ firebase emulators:start --only functions --project mesclainvest-d3745
 
 A mensagem dizendo que a Emulator UI nao sera iniciada e esperada, porque somente o emulador de Functions esta rodando. A mensagem dizendo que Auth e Firestore afetarao producao tambem e esperada neste fluxo de teste com dados reais.
 
-No segundo terminal, rode o app Flutter no Chrome:
+No segundo terminal, rode o app Flutter no Android:
 
 ```powershell
-flutter run -d chrome
+flutter devices
+& "$env:LOCALAPPDATA\Android\sdk\platform-tools\adb.exe" reverse tcp:5001 tcp:5001
+flutter run -d <device-id> --dart-define=FUNCTIONS_BASE_URL=http://127.0.0.1:5001/mesclainvest-d3745/us-central1
 ```
+
+Com o celular conectado por USB, o comando `adb reverse` encaminha a porta `5001` do Android para a porta `5001` do computador, onde o emulador das Functions esta rodando. Se `adb` estiver no PATH, o comando tambem pode ser executado como `adb reverse tcp:5001 tcp:5001`.
 
 Por padrao, o app chama as Functions locais nesta URL:
 
@@ -87,10 +93,26 @@ Por padrao, o app chama as Functions locais nesta URL:
 http://localhost:5001/mesclainvest-d3745/us-central1
 ```
 
+Esse endereco padrao funciona no computador. Para Android fisico, use `127.0.0.1` junto com `adb reverse`, como no comando acima.
+
 Para usar outra URL de Functions:
 
 ```powershell
-flutter run -d chrome --dart-define=FUNCTIONS_BASE_URL=http://localhost:5001/mesclainvest-d3745/us-central1
+flutter run --dart-define=FUNCTIONS_BASE_URL=http://localhost:5001/mesclainvest-d3745/us-central1
+```
+
+Se houver mais de um dispositivo conectado, informe o ID do Android:
+
+```powershell
+flutter run -d <device-id> --dart-define=FUNCTIONS_BASE_URL=http://127.0.0.1:5001/mesclainvest-d3745/us-central1
+```
+
+Caso o Gradle informe que `JAVA_HOME` esta invalido, configure-o para um JDK 17 instalado:
+
+```powershell
+flutter config --jdk-dir "C:\Program Files\Eclipse Adoptium\jdk-17.0.18.8-hotspot"
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.18.8-hotspot"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
 ```
 
 Neste fluxo, apenas as Functions rodam localmente. As chamadas de Auth e Firestore feitas pelo backend usam o projeto Firebase configurado em `.firebaserc`.
