@@ -9,6 +9,7 @@ import '../../core/constants/app_routes.dart';
 import '../../core/services/balcao_service.dart';
 import '../../core/services/startup_service.dart';
 import '../../models/startup_model.dart';
+import '../../widgets/saldo_display.dart';
 import '../../widgets/trade_operation_sheet.dart';
 
 class StartupDetailScreen extends StatefulWidget {
@@ -279,6 +280,8 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
             width: 100,
             fit: BoxFit.contain,
           ),
+          const Spacer(),
+          const SaldoDisplay(),
         ],
       ),
     );

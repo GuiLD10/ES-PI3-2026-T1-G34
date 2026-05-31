@@ -8,6 +8,7 @@ import '../../core/constants/app_routes.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/startup_service.dart';
 import '../../models/startup_model.dart';
+import '../../widgets/saldo_display.dart';
 import '../../widgets/startup_card.dart';
 
 class CatalogScreen extends StatefulWidget {
@@ -204,18 +205,25 @@ class _CatalogScreenState extends State<CatalogScreen> {
             width: 100,
             fit: BoxFit.contain,
           ),
-          // Avatar navega para configurações
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.white,
-              child: Icon(
-                Icons.person,
-                color: AppColors.primary,
-                size: 20,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SaldoDisplay(),
+              const SizedBox(width: 12),
+              // Avatar navega para configurações
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white,
+                  child: Icon(
+                    Icons.person,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
