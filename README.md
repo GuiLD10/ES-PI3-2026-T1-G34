@@ -1,26 +1,29 @@
 # Time 34
 
 # Membros
-ARTUR HENRIQUE PAGNO, 
-BRUNA RODRIGUES CARDOSO, 
-GUILHERME LANGE DALLORA, 
-HENRIQUE SOARES CUNHA, 
+
+ARTUR HENRIQUE PAGNO,
+BRUNA RODRIGUES CARDOSO,
+GUILHERME LANGE DALLORA,
+HENRIQUE SOARES CUNHA,
 RAFAEL LANZA DE QUEIROZ
 
-MesclaInvest 
-Descrição do Projeto 
+MesclaInvest
+Descrição do Projeto
 É um aplicativo mobile desenvolvido como parte do Projeto Integrador III do curso de Engenharia de Software da Puc-Campinas.
-O projeto tem como objetivo simular um ambiente de investimento em startups. Para isso será utilizado tokenização de ativos baseados em blockchain. 
-Cada startup possui tokens que representam participações simuladas, o que permite os usuários realizarem operações de compra e venda dentro de um ambiente educacional. 
+O projeto tem como objetivo simular um ambiente de investimento em startups. Para isso será utilizado tokenização de ativos baseados em blockchain.
+Cada startup possui tokens que representam participações simuladas, o que permite os usuários realizarem operações de compra e venda dentro de um ambiente educacional.
 
 O projeto explora conceitos de:
+
 - Blockchain
 - Tokenização de ativos
 - Mercados digitais de investimento
 - Aplicações mobile para sistemas financeiros
-OBS.: A aplicação possui caráter educacional, ou seja, não envolve dinheiro real e integração com redes blockchain reais.
+  OBS.: A aplicação possui caráter educacional, ou seja, não envolve dinheiro real e integração com redes blockchain reais.
 
 Tecnologias Utilizadas
+
 - Flutter - Desenvolvimento da aplicação mobile
 - Dart - Linguagem de programação do Flutter
 - Firebase Firestore - Banco de dados NoSQL
@@ -60,10 +63,6 @@ cd ..
 ```
 
 ### 4. Configurar variáveis locais
-
-```powershell
-Copy-Item functions\.env.example functions\.env
-```
 
 Preencha `functions/.env` com a Web API Key do Firebase:
 
