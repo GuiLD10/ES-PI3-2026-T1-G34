@@ -131,6 +131,8 @@ flutter run -d <device-id>   # Emulador ou dispositivo Android/iOS
 
 ## Links úteis
 
+- 🔗 [Mapa Mental](https://www.canva.com/design/DAHE_m10m7U/2X9bobzmzV-z-P4Vy80UZg/edit)
 - 🔗 [Wireframe (Whimsical)](https://whimsical.com/bruna-s8/wireframe-mesclainvest-D9Wwwm8dKGrSkBwpFQ9yGN)
 - 🔗 [Documentação Flutter](https://docs.flutter.dev/)
 - 🔗 [Console Firebase](https://console.firebase.google.com/)
+
