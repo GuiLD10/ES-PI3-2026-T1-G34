@@ -25,6 +25,5 @@ export interface RefreshSessionBody {
 }
 
 export interface ToggleMfaBody {
-  uid: string;
   ativar: boolean;
 }

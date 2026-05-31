@@ -3,6 +3,7 @@
 // Descrição: Recebe a requisição http para ativar/desativar MFA do usuário
 
 import {onRequest} from "firebase-functions/v2/https";
+import {authenticateRequest, AuthRequestError} from "../../shared/auth";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {db} from "../../shared/firebase";
 import {ToggleMfaBody} from "../types/authTypes";
@@ -19,18 +20,29 @@ export const toggleMfa = onRequest(async (req, res) => {
     });
   }
 
-  const {uid, ativar} = (req.body ?? {}) as ToggleMfaBody;
-
-  if (!uid) {
-    return sendJson(res, 400, {
-      success: false,
-      message: "UID do usuário é obrigatório.",
-    });
-  }
-
   try {
-    await db.collection("usuarios").doc(uid).update({
-      mfaAtivo: ativar === true,
+    const user = await authenticateRequest(req);
+    const {ativar} = (req.body ?? {}) as Partial<ToggleMfaBody>;
+
+    if (typeof ativar !== "boolean") {
+      return sendJson(res, 400, {
+        success: false,
+        message: "Status do MFA deve ser informado.",
+      });
+    }
+
+    const userRef = db.collection("usuarios").doc(user.uid);
+    const userSnapshot = await userRef.get();
+
+    if (!userSnapshot.exists) {
+      return sendJson(res, 404, {
+        success: false,
+        message: "Usuario nao encontrado.",
+      });
+    }
+
+    await userRef.update({
+      mfaAtivo: ativar,
     });
 
     return sendJson(res, 200, {
@@ -38,10 +50,17 @@ export const toggleMfa = onRequest(async (req, res) => {
       message: ativar ?
         "Autenticação 2FA ativada com sucesso!" :
         "Autenticação 2FA desativada com sucesso.",
-      mfaAtivo: ativar === true,
+      mfaAtivo: ativar,
     });
   } catch (error) {
-    console.error(error);
+    if (error instanceof AuthRequestError) {
+      return sendJson(res, error.statusCode, {
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("Erro ao atualizar status do MFA:", error);
     return sendJson(res, 500, {
       success: false,
       message: "Erro ao atualizar status do MFA.",

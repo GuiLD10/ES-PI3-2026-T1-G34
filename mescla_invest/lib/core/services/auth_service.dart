@@ -190,15 +190,15 @@ class AuthService {
   }
 
   static Future<Map<String, dynamic>> toggleMfa({required bool ativar}) async {
-    final uid = currentUid;
-    if (uid == null) {
+    if (!isAuthenticated) {
       return {'success': false, 'message': 'Usuario nao autenticado.'};
     }
 
-    final response = await _postJson('authentication-toggleMfa', {
-      'uid': uid,
-      'ativar': ativar,
-    });
+    final response = await _postJson(
+      'authentication-toggleMfa',
+      {'ativar': ativar},
+      autenticado: true,
+    );
 
     if (response['success'] == true) {
       SessionManager.setMfaAtivo(ativar);
@@ -230,13 +230,16 @@ class AuthService {
 
   static Future<Map<String, dynamic>> _postJson(
     String functionName,
-    Map<String, dynamic> body,
-  ) async {
+    Map<String, dynamic> body, {
+    bool autenticado = false,
+  }) async {
     try {
       final response = await http
           .post(
             Uri.parse('$_functionsBaseUrl/$functionName'),
-            headers: {'Content-Type': 'application/json'},
+            headers: autenticado
+                ? headersAutenticados()
+                : {'Content-Type': 'application/json'},
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 15));
@@ -251,6 +254,11 @@ class AuthService {
       }
 
       return Map<String, dynamic>.from(decoded);
+    } on AuthServiceException catch (e) {
+      return {
+        'success': false,
+        'message': e.message,
+      };
     } catch (_) {
       return {
         'success': false,
