@@ -364,6 +364,20 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
             ),
           ),
         ),
+        if (startup.sumarioExecutivo.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _buildSecao(
+            titulo: 'Sumário executivo',
+            child: _buildTextoFormatado(startup.sumarioExecutivo),
+          ),
+        ],
+        if (startup.planoDeNegocios.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _buildSecao(
+            titulo: 'Plano de negócios',
+            child: _buildTextoFormatado(startup.planoDeNegocios),
+          ),
+        ],
         const SizedBox(height: 12),
         _buildSocios(startup.socios),
         const SizedBox(height: 12),
@@ -865,6 +879,132 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     return Text(
       texto,
       style: TextStyle(color: AppColors.textHint, fontSize: 13),
+    );
+  }
+
+  /// Formata texto bruto do Firebase em widgets com títulos em negrito,
+  /// bullets e parágrafos separados.
+  /// Lida tanto com texto já separado por \n quanto com texto inline
+  /// onde palavras-chave aparecem no meio da string.
+  Widget _buildTextoFormatado(String texto) {
+    // Palavras-chave que devem ser tratadas como títulos de seção
+    final titulosConhecidos = [
+      'Problema',
+      'Solução',
+      'Solucao',
+      'Público-Alvo',
+      'Publico-Alvo',
+      'Diferenciais',
+      'Modelo de Receita',
+      'Recursos-Chave',
+      'Parceiros-Chave',
+      'Estratégia de Marketing',
+      'Estrategia de Marketing',
+    ];
+
+    // Normaliza: insere \n antes de títulos conhecidos que apareçam inline
+    String textoNormalizado = texto;
+    for (final titulo in titulosConhecidos) {
+      // Busca case-insensitive pelo título seguido opcionalmente de ':'
+      final pattern = RegExp(
+        r'(?<!\n)\s+(' + RegExp.escape(titulo) + r':?\s)',
+        caseSensitive: false,
+      );
+      textoNormalizado = textoNormalizado.replaceAllMapped(pattern, (m) {
+        return '\n${m.group(1)}';
+      });
+    }
+
+    // Normaliza bullets inline: "- texto" precedido de espaço vira \n- texto
+    textoNormalizado = textoNormalizado.replaceAllMapped(
+      RegExp(r'(?<!\n)\s+- '),
+      (m) => '\n- ',
+    );
+
+    final linhas = textoNormalizado.split('\n');
+    final widgets = <Widget>[];
+
+    // Set lowercase para checagem
+    final titulosLower = titulosConhecidos
+        .map((t) => t.toLowerCase())
+        .toSet();
+
+    for (int i = 0; i < linhas.length; i++) {
+      final linha = linhas[i].trim();
+      if (linha.isEmpty) continue;
+
+      // Verifica se é um título conhecido (com ou sem ':')
+      final linhaLower = linha.toLowerCase().replaceAll(':', '').trim();
+      final ehTitulo = titulosLower.contains(linhaLower);
+
+      if (ehTitulo) {
+        // Adiciona espaçamento antes do título (exceto o primeiro widget)
+        if (widgets.isNotEmpty) {
+          widgets.add(const SizedBox(height: 14));
+        }
+        widgets.add(
+          Text(
+            linha.endsWith(':') ? linha : '$linha:',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              height: 1.4,
+            ),
+          ),
+        );
+        widgets.add(const SizedBox(height: 4));
+      } else if (linha.startsWith('- ')) {
+        // Bullet point
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(left: 8, top: 2, bottom: 2),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '•  ',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    linha.substring(2),
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      } else {
+        // Parágrafo normal
+        if (widgets.isNotEmpty) {
+          widgets.add(const SizedBox(height: 6));
+        }
+        widgets.add(
+          Text(
+            linha,
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              height: 1.35,
+            ),
+          ),
+        );
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
     );
   }
 

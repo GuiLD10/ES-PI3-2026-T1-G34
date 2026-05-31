@@ -2,13 +2,13 @@
 // RA: 23012353
 // Descrição: monta dados de startup para resposta
 
-import {DocumentSnapshot} from "firebase-admin/firestore";
-import {convertFirestoreValue} from "../../shared/firestoreConverters";
+import { DocumentSnapshot } from "firebase-admin/firestore";
+import { convertFirestoreValue } from "../../shared/firestoreConverters";
 import {
   getStartupMarketPrices,
   StartupPricingOptions,
 } from "../../shared/startupPricing";
-import {StartupData} from "../types/startupTypes";
+import { StartupData } from "../types/startupTypes";
 
 export function mapStartupDocument(
   doc: DocumentSnapshot,
@@ -31,6 +31,8 @@ export function mapStartupDocument(
     preco_atual_preciso_centavos: prices.currentPricePreciseCents,
     preco_primario_preciso_centavos: prices.primaryPricePreciseCents,
     video_demo: (data.video_demo as string) || "",
+    sumario_executivo: (data.sumario_executivo as string) || "",
+    plano_de_negocios: (data.plano_de_negocios as string) || "",
     socios: Array.isArray(data.socios) ? data.socios : [],
     mentores_conselho: Array.isArray(data.mentores_conselho) ?
       data.mentores_conselho :
