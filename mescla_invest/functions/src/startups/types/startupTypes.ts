@@ -16,6 +16,8 @@ export interface StartupData {
   preco_atual_preciso_centavos: number;
   preco_primario_preciso_centavos: number;
   video_demo: string;
+  sumario_executivo: string;
+  plano_de_negocios: string;
   socios: unknown[];
   mentores_conselho: unknown[];
   perguntas_respostas: unknown[];

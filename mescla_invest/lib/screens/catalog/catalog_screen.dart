@@ -25,8 +25,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   final Map<String, bool> _filtros = {
     'Nova': false,
-    'Em operacao': false,
-    'Em expansao': false,
+    'Em operação': false,
+    'Em expansão': false,
   };
 
   String _busca = '';
@@ -215,7 +215,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   Widget _buildSaudacao() {
     return Text(
-      'Bem-vindo, usuario',
+      'Bem-vindo, usuário',
       style: TextStyle(
         color: AppColors.textPrimary,
         fontSize: 16,
@@ -260,7 +260,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Filtro por estagio:',
+          'Filtro por estágio:',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 13,
@@ -379,7 +379,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
     if (_startupsFiltradas.isEmpty) {
       final mensagem = _todasStartups.isEmpty
-          ? 'Nenhuma startup disponivel.'
+          ? 'Nenhuma startup disponível.'
           : 'Nenhuma startup encontrada para os filtros selecionados.';
 
       return Padding(

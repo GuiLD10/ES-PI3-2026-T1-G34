@@ -22,7 +22,7 @@ class BalcaoService {
     final payload = data['data'];
 
     if (payload is! Map) {
-      throw const BalcaoServiceException('Resposta invalida do order book.');
+      throw const BalcaoServiceException('Resposta inválida do order book.');
     }
 
     return OrderBookBalcaoModel.fromJson(Map<String, dynamic>.from(payload));
@@ -33,7 +33,7 @@ class BalcaoService {
     final payload = data['data'];
 
     if (payload is! List) {
-      throw const BalcaoServiceException('Resposta invalida das ofertas.');
+      throw const BalcaoServiceException('Resposta inválida das ofertas.');
     }
 
     return payload
@@ -54,7 +54,7 @@ class BalcaoService {
     final payload = data['data'];
 
     if (payload is! List) {
-      throw const BalcaoServiceException('Resposta invalida das transacoes.');
+      throw const BalcaoServiceException('Resposta inválida das transações.');
     }
 
     return payload
@@ -81,7 +81,7 @@ class BalcaoService {
     final payload = data['data'];
 
     if (payload is! Map) {
-      throw const BalcaoServiceException('Resposta invalida ao criar oferta.');
+      throw const BalcaoServiceException('Resposta inválida ao criar oferta.');
     }
 
     return ResultadoOfertaBalcaoModel.fromJson(
@@ -101,7 +101,7 @@ class BalcaoService {
 
     if (payload is! Map) {
       throw const BalcaoServiceException(
-        'Resposta invalida ao comprar tokens.',
+        'Resposta inválida ao comprar tokens.',
       );
     }
 
@@ -121,7 +121,7 @@ class BalcaoService {
     final payload = data['data'];
 
     if (payload is! Map) {
-      throw const BalcaoServiceException('Resposta invalida ao vender tokens.');
+      throw const BalcaoServiceException('Resposta inválida ao vender tokens.');
     }
 
     return ResultadoOperacaoMercadoModel.fromJson(
@@ -152,7 +152,7 @@ class BalcaoService {
       throw BalcaoServiceException(e.message);
     } catch (_) {
       throw const BalcaoServiceException(
-        'Erro de conexao. Verifique se o emulador das Functions esta rodando.',
+        'Erro de conexão. Verifique se o emulador das Functions está rodando.',
       );
     }
   }
@@ -177,7 +177,7 @@ class BalcaoService {
       throw BalcaoServiceException(e.message);
     } catch (_) {
       throw const BalcaoServiceException(
-        'Erro de conexao. Verifique se o emulador das Functions esta rodando.',
+        'Erro de conexão. Verifique se o emulador das Functions está rodando.',
       );
     }
   }
@@ -195,7 +195,7 @@ class BalcaoService {
     final decoded = jsonDecode(response.body);
 
     if (decoded is! Map) {
-      throw const BalcaoServiceException('Resposta invalida das Functions.');
+      throw const BalcaoServiceException('Resposta inválida das Functions.');
     }
 
     final data = Map<String, dynamic>.from(decoded);
@@ -204,7 +204,7 @@ class BalcaoService {
         response.statusCode >= 300 ||
         data['success'] != true) {
       throw BalcaoServiceException(
-        _extractMessage(data) ?? 'Erro ao processar operacao do balcao.',
+        _extractMessage(data) ?? 'Erro ao processar operação do balcão.',
       );
     }
 

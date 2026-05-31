@@ -16,6 +16,8 @@ class StartupModel {
   final int precoAtualPrecisoCentavos;
   final int precoPrimarioPrecisoCentavos;
   final String videoDemo;
+  final String sumarioExecutivo;
+  final String planoDeNegocios;
   final List<SocioModel> socios;
   final List<MentorConselhoModel> mentoresConselho;
   final List<PerguntaRespostaModel> perguntasRespostas;
@@ -36,6 +38,8 @@ class StartupModel {
     required this.precoAtualPrecisoCentavos,
     required this.precoPrimarioPrecisoCentavos,
     required this.videoDemo,
+    required this.sumarioExecutivo,
+    required this.planoDeNegocios,
     required this.socios,
     required this.mentoresConselho,
     required this.perguntasRespostas,
@@ -62,6 +66,8 @@ class StartupModel {
         json['preco_primario_preciso_centavos'],
       ),
       videoDemo: _asString(json['video_demo']),
+      sumarioExecutivo: _asString(json['sumario_executivo']),
+      planoDeNegocios: _asString(json['plano_de_negocios']),
       socios: _asList(json['socios']).map(SocioModel.fromJson).toList(),
       mentoresConselho: _asList(
         json['mentores_conselho'],
@@ -93,6 +99,8 @@ class StartupModel {
         map['preco_primario_preciso_centavos'],
       ),
       videoDemo: _asString(map['video_demo']),
+      sumarioExecutivo: _asString(map['sumario executivo']),
+      planoDeNegocios: _asString(map['plano_de_negocios']),
       socios: _asList(map['socios']).map(SocioModel.fromJson).toList(),
       mentoresConselho: _asList(
         map['mentores_conselho'],

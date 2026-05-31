@@ -205,7 +205,7 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
   Widget _buildStartupDropdown() {
     if (_startups.isEmpty) {
       return Text(
-        'Balcao',
+        'Balcão',
         style: TextStyle(
           color: AppColors.textPrimary,
           fontSize: 20,
@@ -242,7 +242,7 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
       children: [
         Expanded(
           child: _buildResumoItem(
-            label: 'Preco atual',
+            label: 'Preço atual',
             value: orderBook == null || precoReferencia <= 0
                 ? '-'
                 : _formatarCentavos(precoReferencia),
@@ -299,7 +299,7 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
       tabs: const [
         Tab(text: 'Livro'),
         Tab(text: 'Minhas Ofertas'),
-        Tab(text: 'Historico'),
+        Tab(text: 'Histórico'),
       ],
     );
   }
@@ -353,7 +353,7 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
     final orderBook = _orderBook;
 
     if (orderBook == null) {
-      return _buildEmpty('Nenhum livro de ofertas disponivel.');
+      return _buildEmpty('Nenhum livro de ofertas disponível.');
     }
 
     return RefreshIndicator(
@@ -484,7 +484,7 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
 
   Widget _buildMinhasOfertasTab() {
     if (_minhasOfertas.isEmpty) {
-      return _buildEmpty('Voce ainda nao possui ofertas para esta startup.');
+      return _buildEmpty('Você ainda não possui ofertas para esta startup.');
     }
 
     return RefreshIndicator(
@@ -552,7 +552,7 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
 
   Widget _buildHistoricoTab() {
     if (_transacoes.isEmpty) {
-      return _buildEmpty('Nenhuma transacao registrada.');
+      return _buildEmpty('Nenhuma transação registrada.');
     }
 
     return RefreshIndicator(

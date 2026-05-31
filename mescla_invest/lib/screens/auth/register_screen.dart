@@ -276,6 +276,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
 
+                    const SizedBox(height: 16),
+
+                    Center(
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Text(
+                          'Voltar ao Login',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                            decorationColor: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 32),
                   ],
                 ),
