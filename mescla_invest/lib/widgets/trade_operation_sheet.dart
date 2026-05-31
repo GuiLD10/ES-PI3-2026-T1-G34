@@ -28,6 +28,7 @@ class TradeOperationSheet extends StatefulWidget {
   final bool editarPreco;
   final int? precoMinimoCentavos;
   final int? precoMaximoCentavos;
+  final int? tokensDisponiveis;
 
   const TradeOperationSheet({
     super.key,
@@ -38,6 +39,7 @@ class TradeOperationSheet extends StatefulWidget {
     required this.editarPreco,
     this.precoMinimoCentavos,
     this.precoMaximoCentavos,
+    this.tokensDisponiveis,
   });
 
   @override
@@ -131,6 +133,35 @@ class _TradeOperationSheetState extends State<TradeOperationSheet> {
             _buildPrecoField(),
           ],
           const SizedBox(height: 14),
+          if (!_isCompra && widget.tokensDisponiveis != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.token_rounded,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Seus tokens disponíveis: ',
+                    style: TextStyle(
+                      color: AppColors.textHint,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    '${widget.tokensDisponiveis}',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           _buildQuantidadeField(),
           const SizedBox(height: 16),
           _buildResumo(_totalLabel, _formatarCentavos(_totalCentavos)),

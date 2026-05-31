@@ -4,8 +4,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/balcao_service.dart';
 import '../../core/services/startup_service.dart';
+import '../../core/services/wallet_service.dart';
 import '../../models/balcao_model.dart';
 import '../../models/startup_model.dart';
 import '../../widgets/trade_operation_sheet.dart';
@@ -617,6 +619,21 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
     final startup = _startupSelecionada;
     if (startup == null) return;
 
+    // Busca tokens disponíveis do usuário para operações de venda
+    int? tokensDisponiveis;
+    if (tipo == 'venda') {
+      try {
+        final uid = AuthService.currentUid;
+        if (uid != null && uid.isNotEmpty) {
+          final ativos = await WalletService.buscarPortfolio(uid);
+          final ativo = ativos.where((a) => a.startupId == startup.id).firstOrNull;
+          tokensDisponiveis = ativo?.quantidadeDisponivel;
+        }
+      } catch (_) {
+        // Ignora erro - segue sem mostrar tokens
+      }
+    }
+
     final precoReferencia = _precoReferenciaCentavos();
     final resultado = await showModalBottomSheet<TradeOperationResult>(
       context: context,
@@ -634,6 +651,7 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
           editarPreco: true,
           precoMinimoCentavos: _precoMinimoCentavos(precoReferencia),
           precoMaximoCentavos: _precoMaximoCentavos(precoReferencia),
+          tokensDisponiveis: tokensDisponiveis,
         );
       },
     );

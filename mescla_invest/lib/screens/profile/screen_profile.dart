@@ -16,23 +16,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _nomeController = TextEditingController();
-  final _senhaAtualController = TextEditingController();
-  final _novaSenhaController = TextEditingController();
-
-  bool _obscureSenhaAtual = true;
-  bool _obscureNovaSenha = true;
-
-  @override
-  void dispose() {
-    _nomeController.dispose();
-    _senhaAtualController.dispose();
-    _novaSenhaController.dispose();
-    super.dispose();
-  }
-
-  void _salvar() {}
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,7 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 24),
               _buildTitulo(),
               const SizedBox(height: 24),
-              _buildFormulario(),
+              _buildBotao2FA(),
             ],
           ),
         ),
@@ -95,182 +78,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildFormulario() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSecaoDadosPessoais(),
-          const SizedBox(height: 24),
-          _buildSecaoAlterarSenha(),
-          const SizedBox(height: 24),
-          _buildBotaoSalvar(),
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSecaoDadosPessoais() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Dados Pessoais',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Nome do Usuário',
-          style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
-        ),
-        const SizedBox(height: 6),
-        _buildTextField(controller: _nomeController, hint: ''),
-      ],
-    );
-  }
-
-  Widget _buildSecaoAlterarSenha() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Alterar senha',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _buildTextField(
-          controller: _senhaAtualController,
-          hint: 'Digite a senha atual',
-          obscure: _obscureSenhaAtual,
-          suffixIcon: IconButton(
-            icon: Icon(
-              _obscureSenhaAtual ? Icons.visibility_off : Icons.visibility,
-              color: AppColors.textHint,
-              size: 20,
-            ),
-            onPressed: () =>
-                setState(() => _obscureSenhaAtual = !_obscureSenhaAtual),
-          ),
-        ),
-        const SizedBox(height: 10),
-        _buildTextField(
-          controller: _novaSenhaController,
-          hint: 'Digite a nova senha',
-          obscure: _obscureNovaSenha,
-          suffixIcon: IconButton(
-            icon: Icon(
-              _obscureNovaSenha ? Icons.visibility_off : Icons.visibility,
-              color: AppColors.textHint,
-              size: 20,
-            ),
-            onPressed: () =>
-                setState(() => _obscureNovaSenha = !_obscureNovaSenha),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBotaoSalvar() {
-    return Row(
-      children: [
-        SizedBox(
-          height: 44,
-          width: 100,
-          child: ElevatedButton(
-            onPressed: _salvar,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: 0,
-            ),
-            child: const Text(
-              'Salvar',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ),
-
-        const SizedBox(width: 12),
-
-        SizedBox(
-          height: 44,
-          child: OutlinedButton.icon(
-            onPressed: _mostrarPopup2FA,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AuthService.isMfaAtivo
+  Widget _buildBotao2FA() {
+    return Center(
+      child: SizedBox(
+        height: 44,
+        child: OutlinedButton.icon(
+          onPressed: _mostrarPopup2FA,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AuthService.isMfaAtivo
+                ? Colors.red
+                : AppColors.primary,
+            side: BorderSide(
+              color: AuthService.isMfaAtivo
                   ? Colors.red
                   : AppColors.primary,
-              side: BorderSide(
-                color: AuthService.isMfaAtivo
-                    ? Colors.red
-                    : AppColors.primary,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
             ),
-            icon: Icon(
-              AuthService.isMfaAtivo
-                  ? Icons.security
-                  : Icons.security_outlined,
-            ),
-            label: Text(
-              AuthService.isMfaAtivo ? 'Desativar 2FA' : '2FA',
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    bool obscure = false,
-    Widget? suffixIcon,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
-        filled: true,
-        fillColor: Colors.white,
-        suffixIcon: suffixIcon,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+          icon: Icon(
+            AuthService.isMfaAtivo
+                ? Icons.security
+                : Icons.security_outlined,
+          ),
+          label: Text(
+            AuthService.isMfaAtivo ? 'Desativar 2FA' : '2FA',
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );
