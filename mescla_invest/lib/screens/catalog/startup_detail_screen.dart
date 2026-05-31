@@ -194,6 +194,8 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
 
     final tokensDisponiveis = await _buscarTokensDisponiveis(startup.id);
 
+    if (!mounted) return;
+
     final resultadoOperacao = await showModalBottomSheet<TradeOperationResult>(
       context: context,
       isScrollControlled: true,

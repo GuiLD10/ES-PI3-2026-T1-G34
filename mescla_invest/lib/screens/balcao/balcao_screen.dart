@@ -634,6 +634,8 @@ class _BalcaoScreenState extends State<BalcaoScreen> {
       }
     }
 
+    if (!mounted) return;
+
     final precoReferencia = _precoReferenciaCentavos();
     final resultado = await showModalBottomSheet<TradeOperationResult>(
       context: context,
