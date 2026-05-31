@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import '../../core/services/session_manager.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_routes.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/balcao_service.dart';
 import '../../core/services/startup_service.dart';
+import '../../core/services/wallet_service.dart';
 import '../../models/startup_model.dart';
 import '../../widgets/saldo_display.dart';
 import '../../widgets/trade_operation_sheet.dart';
@@ -173,8 +175,24 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     }
   }
 
+  /// Busca a quantidade de tokens disponíveis do usuário para uma startup específica.
+  Future<int?> _buscarTokensDisponiveis(String startupId) async {
+    try {
+      final uid = AuthService.currentUid;
+      if (uid == null || uid.isEmpty) return null;
+
+      final ativos = await WalletService.buscarPortfolio(uid);
+      final ativo = ativos.where((a) => a.startupId == startupId).firstOrNull;
+      return ativo?.quantidadeDisponivel;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _venderAoPrecoMercado(StartupModel startup) async {
     if (_isVendaMercadoLoading) return;
+
+    final tokensDisponiveis = await _buscarTokensDisponiveis(startup.id);
 
     final resultadoOperacao = await showModalBottomSheet<TradeOperationResult>(
       context: context,
@@ -189,6 +207,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
           precoReferenciaCentavos: _precoMercadoCentavos(startup),
           precoReferenciaPrecisoCentavos: _precoMercadoPrecisoCentavos(startup),
           editarPreco: false,
+          tokensDisponiveis: tokensDisponiveis,
         );
       },
     );
