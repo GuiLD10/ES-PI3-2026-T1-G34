@@ -21,7 +21,7 @@ class StartupService {
 
     if (startupsJson is! List) {
       throw const StartupServiceException(
-        'Resposta invalida ao buscar startups.',
+        'Resposta inválida ao buscar startups.',
       );
     }
 
@@ -35,7 +35,7 @@ class StartupService {
     final startupId = id.trim();
 
     if (startupId.isEmpty) {
-      throw const StartupServiceException('ID da startup e obrigatorio.');
+      throw const StartupServiceException('ID da startup é obrigatório.');
     }
 
     final data = await _getJson(
@@ -47,7 +47,7 @@ class StartupService {
 
     if (startupJson is! Map) {
       throw const StartupServiceException(
-        'Resposta invalida ao buscar startup.',
+        'Resposta inválida ao buscar startup.',
       );
     }
 
@@ -62,17 +62,17 @@ class StartupService {
   }) async {
     // Validacao do ID da startup
     if (startupId.trim().isEmpty) {
-      throw const StartupServiceException('ID da startup e obrigatorio.');
+      throw const StartupServiceException('ID da startup é obrigatório.');
     }
 
     // Validacao do nome do autor
     if (authorName.trim().isEmpty) {
-      throw const StartupServiceException('Nome do autor e obrigatorio.');
+      throw const StartupServiceException('Nome do autor é obrigatório.');
     }
 
     // Validacao da pergunta
     if (question.trim().isEmpty) {
-      throw const StartupServiceException('Pergunta obrigatoria.');
+      throw const StartupServiceException('Pergunta obrigatória.');
     }
 
     // Chama a Firebase Function usando _postJson
@@ -153,7 +153,7 @@ class StartupService {
       final decoded = jsonDecode(response.body);
 
       if (decoded is! Map) {
-        throw const StartupServiceException('Resposta invalida das Functions.');
+        throw const StartupServiceException('Resposta inválida das Functions.');
       }
 
       final data = Map<String, dynamic>.from(decoded);

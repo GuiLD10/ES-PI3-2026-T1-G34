@@ -197,7 +197,7 @@ class _InvestmentDashboardState extends State<InvestmentDashboard> {
           _buildPeriodSelector(),
           const SizedBox(height: 12),
           if (points.length < 2)
-            _buildChartEmpty('Historico insuficiente.')
+            _buildChartEmpty('Histórico insuficiente.')
           else
             SizedBox(height: 180, child: _buildLineChart(points)),
         ],

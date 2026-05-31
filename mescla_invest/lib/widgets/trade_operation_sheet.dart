@@ -121,7 +121,7 @@ class _TradeOperationSheetState extends State<TradeOperationSheet> {
           Text(widget.startupNome, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 16),
           _buildResumo(
-            'Preco de mercado',
+            'Preço de mercado',
             _formatarPrecisoCentavos(_precoUnitarioPrecisoCentavos),
           ),
           if (widget.editarPreco) ...[
@@ -165,7 +165,7 @@ class _TradeOperationSheetState extends State<TradeOperationSheet> {
         setState(() => _precoEditado = _parseValor(value));
       },
       decoration: _inputDecoration(
-        'Preco unitario da oferta (R\$)',
+        'Preço unitário da oferta (R\$)',
         'Ex: 10,50',
       ),
     );
@@ -237,7 +237,7 @@ class _TradeOperationSheetState extends State<TradeOperationSheet> {
     }
 
     if (_precoUnitarioCentavos <= 0) {
-      _mostrarErro('Informe um preco unitario valido.');
+      _mostrarErro('Informe um preço unitário válido.');
       return;
     }
 
@@ -245,12 +245,12 @@ class _TradeOperationSheetState extends State<TradeOperationSheet> {
     final max = widget.precoMaximoCentavos;
 
     if (widget.editarPreco && min != null && _precoUnitarioCentavos < min) {
-      _mostrarErro('Preco abaixo da faixa permitida.');
+      _mostrarErro('Preço abaixo da faixa permitida.');
       return;
     }
 
     if (widget.editarPreco && max != null && _precoUnitarioCentavos > max) {
-      _mostrarErro('Preco acima da faixa permitida.');
+      _mostrarErro('Preço acima da faixa permitida.');
       return;
     }
 
@@ -310,7 +310,7 @@ class _TradeOperationSheetState extends State<TradeOperationSheet> {
     final operacao = _isCompra ? 'Compra' : 'Venda';
     return widget.editarPreco
         ? 'Oferta de ${operacao.toLowerCase()}'
-        : '$operacao ao preco de mercado';
+        : '$operacao ao preço de mercado';
   }
 
   String get _botaoTexto {

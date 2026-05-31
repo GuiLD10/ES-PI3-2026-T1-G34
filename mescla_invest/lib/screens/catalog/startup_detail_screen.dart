@@ -45,7 +45,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     if (id.trim().isEmpty) {
       setState(() {
         _isLoading = false;
-        _erro = 'Startup nao informada.';
+        _erro = 'Startup não informada.';
       });
       return;
     }
@@ -339,7 +339,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
         padding: const EdgeInsets.only(top: 80),
         child: Center(
           child: Text(
-            'Startup nao encontrada.',
+            'Startup não encontrada.',
             style: TextStyle(color: AppColors.textHint, fontSize: 14),
           ),
         ),
@@ -354,7 +354,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
         _buildAcoesStartup(startup),
         const SizedBox(height: 16),
         _buildSecao(
-          titulo: 'Descricao',
+          titulo: 'Descrição',
           child: Text(
             startup.descricao,
             style: TextStyle(
@@ -389,7 +389,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
         if (startup.videoDemo.isNotEmpty) ...[
           const SizedBox(height: 12),
           _buildSecao(
-            titulo: 'Video demonstrativo',
+            titulo: 'Vídeo demonstrativo',
             child: Text(
               startup.videoDemo,
               style: TextStyle(
@@ -424,7 +424,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
                     ),
                   )
                 : const Icon(Icons.add_shopping_cart_rounded, size: 18),
-            label: const Text('Comprar ao preco de mercado'),
+            label: const Text('Comprar ao preço de mercado'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF138A5B),
               foregroundColor: Colors.white,
@@ -456,7 +456,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
                     ),
                   )
                 : const Icon(Icons.remove_shopping_cart_rounded, size: 18),
-            label: const Text('Vender ao preco de mercado'),
+            label: const Text('Vender ao preço de mercado'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFC0394A),
               foregroundColor: Colors.white,
@@ -483,7 +483,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
               );
             },
             icon: const Icon(Icons.show_chart_rounded, size: 18),
-            label: const Text('Abrir balcao'),
+            label: const Text('Abrir balcão'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -642,13 +642,13 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
   Widget _buildSocios(List<SocioModel> socios) {
     if (socios.isEmpty) {
       return _buildSecao(
-        titulo: 'Estrutura societaria',
-        child: _buildTextoVazio('Nenhum socio cadastrado.'),
+        titulo: 'Estrutura societária',
+        child: _buildTextoVazio('Nenhum sócio cadastrado.'),
       );
     }
 
     return _buildSecao(
-      titulo: 'Estrutura societaria',
+      titulo: 'Estrutura societária',
       child: Column(
         children: socios.map((socio) {
           return _buildLinhaInfo(
@@ -682,7 +682,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
     if (perguntas.isEmpty) {
       return _buildSecao(
         titulo: 'Perguntas e respostas',
-        child: _buildTextoVazio('Nenhuma pergunta publica cadastrada.'),
+        child: _buildTextoVazio('Nenhuma pergunta pública cadastrada.'),
       );
     }
 

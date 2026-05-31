@@ -60,7 +60,7 @@ class _WalletScreenState extends State<WalletScreen> {
     try {
       final uid = AuthService.currentUid;
       if (uid == null || uid.isEmpty) {
-        throw WalletServiceException('Usuario nao autenticado.');
+        throw WalletServiceException('Usuário não autenticado.');
       }
 
       final carteira = await WalletService.buscarCarteira(uid);
@@ -104,13 +104,13 @@ class _WalletScreenState extends State<WalletScreen> {
 
     final valor = _parseValorReais(_valorController.text);
     if (valor == null) {
-      _mostrarMensagem('Informe um valor valido maior que zero.', Colors.red);
+      _mostrarMensagem('Informe um valor válido maior que zero.', Colors.red);
       return;
     }
 
     final uid = AuthService.currentUid;
     if (uid == null || uid.isEmpty) {
-      _mostrarMensagem('Usuario nao autenticado.', Colors.red);
+      _mostrarMensagem('Usuário não autenticado.', Colors.red);
       return;
     }
 
@@ -234,7 +234,7 @@ class _WalletScreenState extends State<WalletScreen> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.grid_view_rounded),
-            label: 'Catalogo',
+            label: 'Catálogo',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.account_balance_wallet_rounded),
@@ -361,7 +361,7 @@ class _WalletScreenState extends State<WalletScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Patrimonio Total',
+                'Patrimônio Total',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 13,
@@ -384,7 +384,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Disponivel',
+                        'Disponível',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 12,
@@ -439,7 +439,7 @@ class _WalletScreenState extends State<WalletScreen> {
         ),
         const SizedBox(height: 24),
         Text(
-          'Historico de Transacoes',
+          'Histórico de Transações',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 15,
@@ -452,7 +452,7 @@ class _WalletScreenState extends State<WalletScreen> {
             padding: const EdgeInsets.only(top: 16),
             child: Center(
               child: Text(
-                'Nenhuma transacao realizada.',
+                'Nenhuma transação realizada.',
                 style: TextStyle(color: AppColors.textHint, fontSize: 14),
               ),
             ),
