@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_routes.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/startup_service.dart';
 import '../../models/startup_model.dart';
 import '../../widgets/startup_card.dart';
@@ -34,6 +35,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
   @override
   void initState() {
     super.initState();
+    if (!AuthService.isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, AppRoutes.login);
+      });
+      return;
+    }
+
     _carregarStartups();
   }
 

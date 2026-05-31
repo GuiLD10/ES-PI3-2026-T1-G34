@@ -16,7 +16,7 @@ class StartupService {
   );
 
   static Future<List<StartupModel>> listarStartups() async {
-    final data = await _getJson('startups-listStartups');
+    final data = await _getJson('startups-listStartups', autenticado: true);
     final startupsJson = data['data'];
 
     if (startupsJson is! List) {

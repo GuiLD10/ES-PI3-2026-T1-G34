@@ -1,9 +1,9 @@
 // Autor: Guilherme Lange Dallora
 // RA: 23012353
-// Descrição: Serviço de autenticação que se comunica com Firebase Functions
+// Descricao: Servico de autenticacao que se comunica com Firebase Functions
 
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
@@ -18,6 +18,8 @@ class AuthService {
 
   static String? _uid;
   static String? _token;
+  static Map<String, dynamic>? _pendingMfaSession;
+  static bool _pendingMfaPersistir = false;
 
   static String? get currentUid => _uid ?? SessionManager.uid;
   static bool get isAuthenticated {
@@ -60,14 +62,37 @@ class AuthService {
     });
 
     if (response['success'] == true) {
-      await _storeSession(response, persistir: continuarConectado);
+      if (response['requiresMfa'] == true) {
+        _pendingMfaSession = Map<String, dynamic>.from(response);
+        _pendingMfaPersistir = continuarConectado;
+        _clearMemorySession();
+        await SessionManager.limparSessaoPersistente();
+      } else {
+        await _storeSession(response, persistir: continuarConectado);
+      }
     }
 
     return response;
   }
 
   static Future<bool> restaurarSessao() async {
-    return false;
+    final refreshToken = await _carregarRefreshTokenPersistente();
+
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return false;
+    }
+
+    final response = await _postJson('authentication-refreshSession', {
+      'refreshToken': refreshToken,
+    });
+
+    if (response['success'] != true) {
+      await clearSession();
+      return false;
+    }
+
+    await _storeSession(response, persistir: true);
+    return isAuthenticated;
   }
 
   static Future<Map<String, dynamic>> recuperarSenha({
@@ -76,25 +101,18 @@ class AuthService {
     return _postJson('authentication-sendPasswordReset', {'email': email});
   }
 
-  // ─── Métodos 2FA via Firebase Auth ───────────────────────────────────
-
-  /// Inicia a verificação de telefone via Firebase Auth.
-  /// Retorna um Completer que resolve com o verificationId quando o SMS é enviado.
   static Future<String> iniciarVerificacaoTelefone(String telefone) async {
     final completer = Completer<String>();
 
     await FirebaseAuth.instance.verifyPhoneNumber(
       phoneNumber: telefone,
       timeout: const Duration(seconds: 60),
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        // Auto-verificação no Android (resolve automaticamente)
-        // Não precisamos completar aqui, pois o OTP screen cuidará disso
-      },
+      verificationCompleted: (PhoneAuthCredential credential) async {},
       verificationFailed: (FirebaseAuthException e) {
         if (!completer.isCompleted) {
           completer.completeError(
             AuthServiceException(
-              e.message ?? 'Erro ao enviar SMS de verificação.',
+              e.message ?? 'Erro ao enviar SMS de verificacao.',
             ),
           );
         }
@@ -104,16 +122,12 @@ class AuthService {
           completer.complete(verificationId);
         }
       },
-      codeAutoRetrievalTimeout: (String verificationId) {
-        // Timeout de auto-retrieval, não é um erro
-      },
+      codeAutoRetrievalTimeout: (String verificationId) {},
     );
 
     return completer.future;
   }
 
-  /// Confirma o código OTP e vincula o telefone ao usuário atual no Firebase Auth.
-  /// Usado para ATIVAR o 2FA.
   static Future<bool> confirmarCodigoOTP({
     required String verificationId,
     required String smsCode,
@@ -126,30 +140,25 @@ class AuthService {
 
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
-        // Vincular telefone à conta existente
         await currentUser.linkWithCredential(credential);
       } else {
-        // Fazer sign-in com a credencial de telefone
         await FirebaseAuth.instance.signInWithCredential(credential);
       }
 
       return true;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'invalid-verification-code') {
-        throw const AuthServiceException('Código de verificação inválido.');
+        throw const AuthServiceException('Codigo de verificacao invalido.');
       }
       if (e.code == 'credential-already-in-use') {
         throw const AuthServiceException(
-          'Este telefone já está vinculado a outra conta.',
+          'Este telefone ja esta vinculado a outra conta.',
         );
       }
-      throw AuthServiceException(
-        e.message ?? 'Erro ao verificar código.',
-      );
+      throw AuthServiceException(e.message ?? 'Erro ao verificar codigo.');
     }
   }
 
-  /// Verifica o código OTP durante o login (quando MFA está ativo).
   static Future<bool> verificarCodigoMfaLogin({
     required String verificationId,
     required String smsCode,
@@ -161,22 +170,29 @@ class AuthService {
       );
 
       await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final pendingSession = _pendingMfaSession;
+      if (pendingSession == null) {
+        throw const AuthServiceException(
+          'Sessao MFA expirada. Faca login novamente.',
+        );
+      }
+
+      await _storeSession(pendingSession, persistir: _pendingMfaPersistir);
+      _clearPendingMfaSession();
       return true;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'invalid-verification-code') {
-        throw const AuthServiceException('Código de verificação inválido.');
+        throw const AuthServiceException('Codigo de verificacao invalido.');
       }
-      throw AuthServiceException(
-        e.message ?? 'Erro ao verificar código.',
-      );
+      throw AuthServiceException(e.message ?? 'Erro ao verificar codigo.');
     }
   }
 
-  /// Ativa ou desativa o 2FA no backend (salva flag no Firestore).
   static Future<Map<String, dynamic>> toggleMfa({required bool ativar}) async {
     final uid = currentUid;
     if (uid == null) {
-      return {'success': false, 'message': 'Usuário não autenticado.'};
+      return {'success': false, 'message': 'Usuario nao autenticado.'};
     }
 
     final response = await _postJson('authentication-toggleMfa', {
@@ -191,10 +207,7 @@ class AuthService {
     return response;
   }
 
-  /// Verifica se o MFA está ativo para o usuário na sessão.
   static bool get isMfaAtivo => SessionManager.mfaAtivo;
-
-  // ─── Métodos utilitários ─────────────────────────────────────────────
 
   static Map<String, String> headersAutenticados() {
     final token = _token ?? SessionManager.token;
@@ -209,10 +222,10 @@ class AuthService {
     };
   }
 
-  static void clearSession() {
-    _uid = null;
-    _token = null;
-    SessionManager.limparSessao();
+  static Future<void> clearSession() async {
+    _clearPendingMfaSession();
+    _clearMemorySession();
+    await SessionManager.limparSessaoPersistente();
   }
 
   static Future<Map<String, dynamic>> _postJson(
@@ -233,16 +246,16 @@ class AuthService {
       if (decoded is! Map) {
         return {
           'success': false,
-          'message': 'Resposta inválida das Functions.',
+          'message': 'Resposta invalida das Functions.',
         };
       }
 
       return Map<String, dynamic>.from(decoded);
-    } catch (e) {
+    } catch (_) {
       return {
         'success': false,
         'message':
-            'Erro de conexão. Verifique se o emulador das Functions está rodando.',
+            'Erro de conexao. Verifique se o emulador das Functions esta rodando.',
       };
     }
   }
@@ -253,6 +266,7 @@ class AuthService {
   }) async {
     final uid = response['uid']?.toString().trim();
     final token = response['token']?.toString().trim();
+    final refreshToken = response['refreshToken']?.toString().trim();
     final name = response['name']?.toString().trim();
     final telefone = response['telefone']?.toString().trim();
     final mfaAtivo = response['requiresMfa'] == true;
@@ -268,13 +282,34 @@ class AuthService {
 
     _uid = uid;
     _token = token;
-    SessionManager.salvarSessao(
+    await SessionManager.salvarSessao(
       uid: uid,
       token: token,
       name: name,
       telefone: telefone ?? '',
+      refreshToken: refreshToken,
       mfaAtivo: mfaAtivo,
+      persistir: persistir,
     );
+  }
+
+  static Future<String?> _carregarRefreshTokenPersistente() async {
+    try {
+      return await SessionManager.carregarRefreshTokenPersistente();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static void _clearMemorySession() {
+    _uid = null;
+    _token = null;
+    SessionManager.limparSessao();
+  }
+
+  static void _clearPendingMfaSession() {
+    _pendingMfaSession = null;
+    _pendingMfaPersistir = false;
   }
 
   static String? getTelefoneUsuario() {

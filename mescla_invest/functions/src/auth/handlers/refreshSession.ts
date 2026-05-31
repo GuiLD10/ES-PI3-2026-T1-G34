@@ -9,6 +9,7 @@ import {
   getUserInformations,
   refreshIdToken,
 } from "../repositories/authRepository";
+import {db} from "../../shared/firebase";
 import {RefreshSessionBody} from "../types/authTypes";
 
 export const refreshSession = onRequest(async (req, res) => {
@@ -42,7 +43,12 @@ export const refreshSession = onRequest(async (req, res) => {
       });
     }
 
-    const user = await getUserInformations(data.user_id);
+    const [user, userDoc] = await Promise.all([
+      getUserInformations(data.user_id),
+      db.collection("usuarios").doc(data.user_id).get(),
+    ]);
+    const userData = userDoc.data();
+    const mfaAtivo = userData?.mfaAtivo === true;
 
     return sendJson(res, 200, {
       success: true,
@@ -52,7 +58,8 @@ export const refreshSession = onRequest(async (req, res) => {
       refreshToken: data.refresh_token,
       name: user.displayName,
       email: user.email,
-      telefone: user.phoneNumber,
+      telefone: userData?.telefone ?? user.phoneNumber ?? "",
+      requiresMfa: mfaAtivo,
     });
   } catch (error) {
     console.error("Erro ao renovar sessao:", error);
