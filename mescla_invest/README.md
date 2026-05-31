@@ -5,8 +5,8 @@ Aplicativo Flutter com backend em Firebase Functions.
 ## Requisitos
 
 - Flutter SDK configurado
-- Node.js 20
-- Firebase CLI atualizada com suporte a `nodejs20`
+- Node.js 24
+- Firebase CLI atualizada com suporte a `nodejs24`
 - Acesso ao projeto Firebase `mesclainvest-d3745`
 
 ## Preparacao inicial
@@ -25,7 +25,7 @@ Confira a versao da Firebase CLI:
 firebase --version
 ```
 
-Se o emulador mostrar `Cannot deploy function with runtime nodejs20`, atualize a Firebase CLI:
+Se o emulador mostrar `Cannot deploy function with runtime nodejs24`, atualize a Firebase CLI:
 
 ```powershell
 npm install -g firebase-tools@latest

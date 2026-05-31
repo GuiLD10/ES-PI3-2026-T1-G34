@@ -35,9 +35,9 @@ export const toggleMfa = onRequest(async (req, res) => {
 
     return sendJson(res, 200, {
       success: true,
-      message: ativar
-        ? "Autenticação 2FA ativada com sucesso!"
-        : "Autenticação 2FA desativada com sucesso.",
+      message: ativar ?
+        "Autenticação 2FA ativada com sucesso!" :
+        "Autenticação 2FA desativada com sucesso.",
       mfaAtivo: ativar === true,
     });
   } catch (error) {

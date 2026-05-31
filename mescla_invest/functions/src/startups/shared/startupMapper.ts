@@ -2,13 +2,13 @@
 // RA: 23012353
 // Descrição: monta dados de startup para resposta
 
-import { DocumentSnapshot } from "firebase-admin/firestore";
-import { convertFirestoreValue } from "../../shared/firestoreConverters";
+import {DocumentSnapshot} from "firebase-admin/firestore";
+import {convertFirestoreValue} from "../../shared/firestoreConverters";
 import {
   getStartupMarketPrices,
   StartupPricingOptions,
 } from "../../shared/startupPricing";
-import { StartupData } from "../types/startupTypes";
+import {StartupData} from "../types/startupTypes";
 
 export function mapStartupDocument(
   doc: DocumentSnapshot,

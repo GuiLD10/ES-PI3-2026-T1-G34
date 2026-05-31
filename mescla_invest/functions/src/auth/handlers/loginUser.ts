@@ -5,7 +5,10 @@
 import {onRequest} from "firebase-functions/v2/https";
 import {HttpsError} from "firebase-functions/https";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
-import {signInWithPassword, getUserInformations} from "../repositories/authRepository";
+import {
+  getUserInformations,
+  signInWithPassword,
+} from "../repositories/authRepository";
 import {LoginBody} from "../types/authTypes";
 import {db} from "../../shared/firebase";
 
