@@ -8,6 +8,9 @@ import {
   getStartupMarketPrices,
   StartupPricingOptions,
 } from "../../shared/startupPricing";
+import {
+  calculateStartupTokenDistribution,
+} from "../../shared/tokenDistribution";
 import {StartupData} from "../types/startupTypes";
 
 export function mapStartupDocument(
@@ -16,6 +19,7 @@ export function mapStartupDocument(
 ): StartupData {
   const data = convertFirestoreValue(doc.data()) as Record<string, unknown>;
   const prices = getStartupMarketPrices(data, options);
+  const tokenDistribution = calculateStartupTokenDistribution(data);
 
   return {
     id: doc.id,
@@ -26,6 +30,11 @@ export function mapStartupDocument(
     status: (data.status as string) || "",
     capital_aportado: Number(data.capital_aportado) || 0,
     tokens_emitidos: Number(data.tokens_emitidos) || 0,
+    tokens_socios_total: tokenDistribution.partnerTokensTotal,
+    tokens_mescla_total: tokenDistribution.mesclaTokensTotal,
+    tokens_venda_total: tokenDistribution.primarySaleTokensTotal,
+    tokens_venda_disponiveis:
+      tokenDistribution.primarySaleTokensAvailable,
     preco_atual_centavos: prices.currentPriceCents,
     preco_primario_centavos: prices.primaryPriceCents,
     preco_atual_preciso_centavos: prices.currentPricePreciseCents,

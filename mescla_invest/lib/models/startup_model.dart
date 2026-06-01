@@ -11,6 +11,10 @@ class StartupModel {
   final String status;
   final int capitalAportado;
   final int tokensEmitidos;
+  final int tokensSociosTotal;
+  final int tokensMesclaTotal;
+  final int tokensVendaTotal;
+  final int tokensVendaDisponiveis;
   final int precoAtualCentavos;
   final int precoPrimarioCentavos;
   final int precoAtualPrecisoCentavos;
@@ -33,6 +37,10 @@ class StartupModel {
     required this.status,
     required this.capitalAportado,
     required this.tokensEmitidos,
+    required this.tokensSociosTotal,
+    required this.tokensMesclaTotal,
+    required this.tokensVendaTotal,
+    required this.tokensVendaDisponiveis,
     required this.precoAtualCentavos,
     required this.precoPrimarioCentavos,
     required this.precoAtualPrecisoCentavos,
@@ -57,6 +65,10 @@ class StartupModel {
       status: _asString(json['status']),
       capitalAportado: _asInt(json['capital_aportado']),
       tokensEmitidos: _asInt(json['tokens_emitidos']),
+      tokensSociosTotal: _readTokensSociosTotal(json),
+      tokensMesclaTotal: _readTokensMesclaTotal(json),
+      tokensVendaTotal: _readTokensVendaTotal(json),
+      tokensVendaDisponiveis: _readTokensVendaDisponiveis(json),
       precoAtualCentavos: _asInt(json['preco_atual_centavos']),
       precoPrimarioCentavos: _asInt(json['preco_primario_centavos']),
       precoAtualPrecisoCentavos: _readPreciseCents(
@@ -90,6 +102,10 @@ class StartupModel {
       status: _asString(map['status']),
       capitalAportado: _asInt(map['capital_aportado']),
       tokensEmitidos: _asInt(map['tokens_emitidos']),
+      tokensSociosTotal: _readTokensSociosTotal(map),
+      tokensMesclaTotal: _readTokensMesclaTotal(map),
+      tokensVendaTotal: _readTokensVendaTotal(map),
+      tokensVendaDisponiveis: _readTokensVendaDisponiveis(map),
       precoAtualCentavos: _asInt(map['preco_atual_centavos']),
       precoPrimarioCentavos: _asInt(map['preco_primario_centavos']),
       precoAtualPrecisoCentavos: _readPreciseCents(
@@ -211,6 +227,54 @@ int _asInt(dynamic value) {
 
 int _readPreciseCents(dynamic value) {
   return _asInt(value);
+}
+
+int _readTokensSociosTotal(Map<String, dynamic> data) {
+  if (data.containsKey('tokens_socios_total')) {
+    return _asNonNegativeInt(data['tokens_socios_total']);
+  }
+
+  return (_asNonNegativeInt(data['tokens_emitidos']) * 30) ~/ 100;
+}
+
+int _readTokensVendaTotal(Map<String, dynamic> data) {
+  if (data.containsKey('tokens_venda_total')) {
+    return _asNonNegativeInt(data['tokens_venda_total']);
+  }
+
+  return (_asNonNegativeInt(data['tokens_emitidos']) * 60) ~/ 100;
+}
+
+int _readTokensMesclaTotal(Map<String, dynamic> data) {
+  if (data.containsKey('tokens_mescla_total')) {
+    return _asNonNegativeInt(data['tokens_mescla_total']);
+  }
+
+  final tokensEmitidos = _asNonNegativeInt(data['tokens_emitidos']);
+  final tokensMesclaTotal = tokensEmitidos -
+      _readTokensSociosTotal(data) -
+      _readTokensVendaTotal(data);
+  return tokensMesclaTotal < 0 ? 0 : tokensMesclaTotal;
+}
+
+int _readTokensVendaDisponiveis(Map<String, dynamic> data) {
+  final tokensVendaTotal = _readTokensVendaTotal(data);
+
+  if (!data.containsKey('tokens_venda_disponiveis')) {
+    return tokensVendaTotal;
+  }
+
+  final tokensVendaDisponiveis = _asNonNegativeInt(
+    data['tokens_venda_disponiveis'],
+  );
+  return tokensVendaDisponiveis > tokensVendaTotal
+      ? tokensVendaTotal
+      : tokensVendaDisponiveis;
+}
+
+int _asNonNegativeInt(dynamic value) {
+  final parsedValue = _asInt(value);
+  return parsedValue < 0 ? 0 : parsedValue;
 }
 
 List<Map<String, dynamic>> _asList(dynamic value) {

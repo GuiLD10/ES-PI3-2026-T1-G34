@@ -18,6 +18,10 @@ void main() {
       'status': 'ativa',
       'capital_aportado': '150000',
       'tokens_emitidos': 10000,
+      'tokens_socios_total': 3000,
+      'tokens_mescla_total': 1000,
+      'tokens_venda_total': 6000,
+      'tokens_venda_disponiveis': 4200,
       'preco_atual_centavos': 1250,
       'preco_primario_centavos': 1000,
       'preco_atual_preciso_centavos': 12500000,
@@ -50,11 +54,30 @@ void main() {
     expect(startup.nome, 'MesclaPay');
     expect(startup.capitalAportado, 150000);
     expect(startup.tokensEmitidos, 10000);
+    expect(startup.tokensSociosTotal, 3000);
+    expect(startup.tokensMesclaTotal, 1000);
+    expect(startup.tokensVendaTotal, 6000);
+    expect(startup.tokensVendaDisponiveis, 4200);
     expect(startup.socios, hasLength(2));
     expect(startup.socios.first.participacao, 60);
     expect(startup.mentoresConselho.single.papel, 'Mentor');
     expect(startup.perguntasRespostas.single.respostas.single.resposta,
         'Universidades.');
+  });
+
+  test('calcula distribuicao padrao de tokens quando campos nao vierem da API',
+      () {
+    final startup = StartupModel.fromJson({
+      'id': 'startup_002',
+      'nome': 'MesclaHealth',
+      'tokens_emitidos': 1000000,
+    });
+
+    expect(startup.tokensEmitidos, 1000000);
+    expect(startup.tokensSociosTotal, 300000);
+    expect(startup.tokensMesclaTotal, 100000);
+    expect(startup.tokensVendaTotal, 600000);
+    expect(startup.tokensVendaDisponiveis, 600000);
   });
 
   test('converte carteira em centavos e calcula patrimonio total', () {

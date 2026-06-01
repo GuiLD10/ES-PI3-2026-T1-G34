@@ -127,6 +127,14 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
   Future<void> _comprarAoPrecoMercado(StartupModel startup) async {
     if (_isCompraMercadoLoading) return;
 
+    if (startup.tokensVendaDisponiveis <= 0) {
+      _mostrarMensagem(
+        'Nao ha tokens disponiveis para compra nesta startup.',
+        Colors.redAccent,
+      );
+      return;
+    }
+
     final resultadoOperacao = await showModalBottomSheet<TradeOperationResult>(
       context: context,
       isScrollControlled: true,
@@ -140,6 +148,7 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
           precoReferenciaCentavos: _precoMercadoCentavos(startup),
           precoReferenciaPrecisoCentavos: _precoMercadoPrecisoCentavos(startup),
           editarPreco: false,
+          tokensDisponiveis: startup.tokensVendaDisponiveis,
         );
       },
     );
@@ -452,13 +461,15 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
   }
 
   Widget _buildAcoesStartup(StartupModel startup) {
+    final compraIndisponivel = startup.tokensVendaDisponiveis <= 0;
+
     return Column(
       children: [
         SizedBox(
           width: double.infinity,
           height: 44,
           child: ElevatedButton.icon(
-            onPressed: _isCompraMercadoLoading
+            onPressed: _isCompraMercadoLoading || compraIndisponivel
                 ? null
                 : () => _comprarAoPrecoMercado(startup),
             icon: _isCompraMercadoLoading

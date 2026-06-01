@@ -133,7 +133,7 @@ class _TradeOperationSheetState extends State<TradeOperationSheet> {
             _buildPrecoField(),
           ],
           const SizedBox(height: 14),
-          if (!_isCompra && widget.tokensDisponiveis != null)
+          if (widget.tokensDisponiveis != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
@@ -145,7 +145,9 @@ class _TradeOperationSheetState extends State<TradeOperationSheet> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Seus tokens disponíveis: ',
+                    _isCompra
+                        ? 'Tokens disponíveis: '
+                        : 'Seus tokens disponíveis: ',
                     style: TextStyle(
                       color: AppColors.textHint,
                       fontSize: 13,
@@ -269,6 +271,17 @@ class _TradeOperationSheetState extends State<TradeOperationSheet> {
 
     if (_precoUnitarioCentavos <= 0) {
       _mostrarErro('Informe um preço unitário válido.');
+      return;
+    }
+
+    final tokensDisponiveis = widget.tokensDisponiveis;
+
+    if (tokensDisponiveis != null && _quantidade > tokensDisponiveis) {
+      _mostrarErro(
+        _isCompra
+            ? 'Quantidade maior que os tokens disponíveis.'
+            : 'Quantidade maior que seus tokens disponíveis.',
+      );
       return;
     }
 

@@ -16,6 +16,13 @@ import {
 } from "../../shared/startupPricing";
 import type {StartupMarketPrices} from "../../shared/startupPricing";
 import {
+  buildStartupTokenDistributionPatch,
+  calculateStartupTokenDistribution,
+} from "../../shared/tokenDistribution";
+import type {
+  StartupTokenDistribution,
+} from "../../shared/tokenDistribution";
+import {
   AuthenticatedExchangeUser,
   CancelledOrderResponse,
   CreateOrderInput,
@@ -82,6 +89,10 @@ export async function buyAtMarket(
       startupDoc,
       hasTransactions,
     );
+    const tokenDistribution = calculateStartupTokenDistribution(
+      startup.rawData,
+    );
+    validatePrimarySaleAvailability(tokenDistribution, input.quantity);
     const totalAmountPreciseCents = calculateTotalPreciseCents(
       input.quantity,
       startup.prices.currentPricePreciseCents,
@@ -111,6 +122,8 @@ export async function buyAtMarket(
       input.quantity,
       startup.prices.currentPricePreciseCents,
     );
+    const nextPrimarySaleTokensAvailable =
+      tokenDistribution.primarySaleTokensAvailable - input.quantity;
 
     validateAvailableBalance(wallet, totalAmountCents);
     transaction.update(userRef, {
@@ -149,6 +162,11 @@ export async function buyAtMarket(
     } satisfies ExchangeTransactionDocument);
     transaction.update(startupRef, {
       ...pricePatch,
+      ...buildStartupTokenDistributionPatch(
+        startup.rawData,
+        tokenDistribution,
+      ),
+      tokens_venda_disponiveis: nextPrimarySaleTokensAvailable,
       preco_atual_centavos: nextPriceCents,
       preco_atual_preciso_centavos: nextPricePreciseCents,
       atualizado_em: fieldValue.serverTimestamp(),
@@ -691,6 +709,27 @@ function preciseAverageToDisplayCents(averagePricePreciseCents: number) {
   }
 
   return preciseCentsToDisplayCents(averagePricePreciseCents);
+}
+
+function validatePrimarySaleAvailability(
+  distribution: StartupTokenDistribution,
+  requestedQuantity: number,
+): void {
+  if (distribution.primarySaleTokensAvailable <= 0) {
+    throw new ExchangeError(
+      409,
+      "Nao ha tokens disponiveis para compra nesta startup.",
+      "quantidade",
+    );
+  }
+
+  if (requestedQuantity > distribution.primarySaleTokensAvailable) {
+    throw new ExchangeError(
+      409,
+      "Quantidade solicitada excede os tokens disponiveis para venda.",
+      "quantidade",
+    );
+  }
 }
 
 interface CancellationOrder {
