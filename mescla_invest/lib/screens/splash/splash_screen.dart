@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -25,16 +26,18 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 1200),
     );
 
-
-
     _controller.forward();
+    _verificarSessao();
+  }
 
-    // Navega para login após 2.5 segundos
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
-      }
-    });
+  Future<void> _verificarSessao() async {
+    await Future.delayed(const Duration(milliseconds: 2500));
+
+    final restaurada = await AuthService.restaurarSessao();
+
+    if (!mounted) return;
+
+    Navigator.pushReplacementNamed(context, restaurada ? '/catalog' : '/login');
   }
 
   @override

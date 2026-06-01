@@ -1,25 +1,27 @@
 // Autor: Rafael Lanza de Queiroz
 // RA: 22010825
-// Descricao: Servico de startups que se comunica com o servidor Node.js
+// Descricao: Servico de startups que se comunica com Firebase Functions
 
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
 import '../../models/startup_model.dart';
+import 'auth_service.dart';
 
 class StartupService {
-  // Emulador Android - http://10.0.2.2:3000.
-  // Em dispositivo fisico - IP da maquina na rede local.
-  static const String _baseUrl = 'http://localhost:3000';
+  static const String _functionsBaseUrl = String.fromEnvironment(
+    'FUNCTIONS_BASE_URL',
+    defaultValue: 'http://localhost:5001/mesclainvest-d3745/us-central1',
+  );
 
   static Future<List<StartupModel>> listarStartups() async {
-    final data = await _getJson('/startups');
+    final data = await _getJson('startups-listStartups', autenticado: true);
     final startupsJson = data['data'];
 
     if (startupsJson is! List) {
       throw const StartupServiceException(
-        'Resposta invalida ao buscar startups.',
+        'Resposta inválida ao buscar startups.',
       );
     }
 
@@ -33,34 +35,125 @@ class StartupService {
     final startupId = id.trim();
 
     if (startupId.isEmpty) {
-      throw const StartupServiceException('ID da startup e obrigatorio.');
+      throw const StartupServiceException('ID da startup é obrigatório.');
     }
 
-    final data = await _getJson('/startups/${Uri.encodeComponent(startupId)}');
+    final data = await _getJson(
+      'startups-getStartupById',
+      queryParameters: {'startupId': startupId},
+      autenticado: true,
+    );
     final startupJson = data['data'];
 
     if (startupJson is! Map) {
       throw const StartupServiceException(
-        'Resposta invalida ao buscar startup.',
+        'Resposta inválida ao buscar startup.',
       );
     }
 
     return StartupModel.fromJson(Map<String, dynamic>.from(startupJson));
   }
 
-  static Future<Map<String, dynamic>> _getJson(String endpoint) async {
+  static Future<void> criarPerguntaStartup({
+    required String startupId,
+    required String authorName,
+    required String question,
+    required String questionType,
+  }) async {
+    // Validacao do ID da startup
+    if (startupId.trim().isEmpty) {
+      throw const StartupServiceException('ID da startup é obrigatório.');
+    }
+
+    // Validacao do nome do autor
+    if (authorName.trim().isEmpty) {
+      throw const StartupServiceException('Nome do autor é obrigatório.');
+    }
+
+    // Validacao da pergunta
+    if (question.trim().isEmpty) {
+      throw const StartupServiceException('Pergunta obrigatória.');
+    }
+
+    // Chama a Firebase Function usando _postJson
+    final data = await _postJson('startups-createStartupQuestion', {
+      'startupId': startupId.trim(),
+
+      'authorName': authorName.trim(),
+
+      'question': question.trim(),
+
+      // publica ou privada
+      'questionType': questionType,
+    });
+
+    // Verifica se deu erro
+    if (data['success'] != true) {
+      throw StartupServiceException(
+        data['message'] ?? 'Erro ao enviar pergunta.',
+      );
+    }
+  }
+
+  static Future<bool> isUserInvestor(String startupId) async {
+    final uid = AuthService.currentUid;
+
+    if (uid == null || uid.trim().isEmpty) {
+      return false;
+    }
+
+    final data = await _getJson('wallet-getPortfolio', autenticado: true);
+
+    final portfolioData = data['data'];
+
+    if (portfolioData is! Map) {
+      return false;
+    }
+
+    final ativos = portfolioData['ativos'];
+
+    if (ativos is! List) {
+      return false;
+    }
+
+    for (final ativo in ativos) {
+      if (ativo is Map) {
+        final startupIdAtivo = ativo['startup_id']?.toString();
+
+        final quantidadeDisponivel =
+            (ativo['quantidade_disponivel'] ?? 0) as int;
+
+        final quantidadeBloqueada = (ativo['quantidade_bloqueada'] ?? 0) as int;
+
+        final quantidadeTotal = quantidadeDisponivel + quantidadeBloqueada;
+
+        if (startupIdAtivo == startupId && quantidadeTotal > 0) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  static Future<Map<String, dynamic>> _getJson(
+    String functionName, {
+    Map<String, String>? queryParameters,
+    bool autenticado = false,
+  }) async {
     try {
       final response = await http
           .get(
-            Uri.parse('$_baseUrl$endpoint'),
-            headers: {'Content-Type': 'application/json'},
+            _functionUri(functionName, queryParameters),
+            headers: autenticado
+                ? AuthService.headersAutenticados()
+                : {'Content-Type': 'application/json'},
           )
           .timeout(const Duration(seconds: 15));
 
       final decoded = jsonDecode(response.body);
 
       if (decoded is! Map) {
-        throw const StartupServiceException('Resposta invalida do servidor.');
+        throw const StartupServiceException('Resposta inválida das Functions.');
       }
 
       final data = Map<String, dynamic>.from(decoded);
@@ -69,21 +162,64 @@ class StartupService {
           response.statusCode >= 300 ||
           data['success'] != true) {
         throw StartupServiceException(
-          _extrairMensagem(data) ?? 'Erro ao buscar dados de startups.',
+          _extractMessage(data) ?? 'Erro ao buscar dados de startups.',
         );
       }
 
       return data;
     } on StartupServiceException {
       rethrow;
-    } catch (_) {
-      throw const StartupServiceException(
-        'Erro de conexao. Verifique se o servidor esta rodando.',
-      );
+    } on AuthServiceException catch (e) {
+      throw StartupServiceException(e.message);
+    } catch (e) {
+      throw StartupServiceException(e.toString());
     }
   }
 
-  static String? _extrairMensagem(Map<String, dynamic> data) {
+  static Future<Map<String, dynamic>> _postJson(
+    String functionName,
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_functionsBaseUrl/$functionName'),
+            headers: AuthService.headersAutenticados(),
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! Map) {
+        return {
+          'success': false,
+          'message': 'Resposta inválida das Functions.',
+        };
+      }
+
+      return Map<String, dynamic>.from(decoded);
+    } on AuthServiceException catch (e) {
+      throw StartupServiceException(e.message);
+    } catch (e) {
+      return {
+        'success': false,
+        'message':
+            'Erro de conexão. Verifique se o emulador das Functions está rodando.',
+      };
+    }
+  }
+
+  static Uri _functionUri(
+    String functionName,
+    Map<String, String>? queryParameters,
+  ) {
+    return Uri.parse(
+      '$_functionsBaseUrl/$functionName',
+    ).replace(queryParameters: queryParameters);
+  }
+
+  static String? _extractMessage(Map<String, dynamic> data) {
     final message = data['message'];
     if (message == null) return null;
 

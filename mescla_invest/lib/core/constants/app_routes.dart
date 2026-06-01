@@ -3,13 +3,14 @@
 // Descrição: Constantes de rotas da aplicação
 
 class AppRoutes {
-  static const splash         = '/';
-  static const login          = '/login';
-  static const register       = '/register';
+  static const splash = '/';
+  static const login = '/login';
+  static const register = '/register';
   static const forgotPassword = '/forgot-password';
-  static const catalog        = '/catalog';
-  static const startupDetail  = '/startup-detail';
-  static const balcao         = '/balcao';
-  static const settings       = '/settings';
-  static const wallet         = '/wallet';
+  static const catalog = '/catalog';
+  static const startupDetail = '/startup-detail';
+  static const balcao = '/balcao';
+  static const wallet = '/wallet';
+  static const profile = '/profile';
+  static const otpVerification = '/otp-verification';
 }

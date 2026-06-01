@@ -1,0 +1,55 @@
+// Autor: Guilherme Lange Dallora
+// RA: 23012353
+// Descrição: monta dados de startup para resposta
+
+import {DocumentSnapshot} from "firebase-admin/firestore";
+import {convertFirestoreValue} from "../../shared/firestoreConverters";
+import {
+  getStartupMarketPrices,
+  StartupPricingOptions,
+} from "../../shared/startupPricing";
+import {
+  calculateStartupTokenDistribution,
+} from "../../shared/tokenDistribution";
+import {StartupData} from "../types/startupTypes";
+
+export function mapStartupDocument(
+  doc: DocumentSnapshot,
+  options: StartupPricingOptions = {},
+): StartupData {
+  const data = convertFirestoreValue(doc.data()) as Record<string, unknown>;
+  const prices = getStartupMarketPrices(data, options);
+  const tokenDistribution = calculateStartupTokenDistribution(data);
+
+  return {
+    id: doc.id,
+    nome: (data.nome as string) || "",
+    descricao: (data.descricao as string) || "",
+    setor: (data.setor as string) || "",
+    estagio: (data.estagio as string) || "",
+    status: (data.status as string) || "",
+    capital_aportado: Number(data.capital_aportado) || 0,
+    tokens_emitidos: Number(data.tokens_emitidos) || 0,
+    tokens_socios_total: tokenDistribution.partnerTokensTotal,
+    tokens_mescla_total: tokenDistribution.mesclaTokensTotal,
+    tokens_venda_total: tokenDistribution.primarySaleTokensTotal,
+    tokens_venda_disponiveis:
+      tokenDistribution.primarySaleTokensAvailable,
+    preco_atual_centavos: prices.currentPriceCents,
+    preco_primario_centavos: prices.primaryPriceCents,
+    preco_atual_preciso_centavos: prices.currentPricePreciseCents,
+    preco_primario_preciso_centavos: prices.primaryPricePreciseCents,
+    video_demo: (data.video_demo as string) || "",
+    sumario_executivo: (data.sumario_executivo as string) || "",
+    plano_de_negocios: (data.plano_de_negocios as string) || "",
+    socios: Array.isArray(data.socios) ? data.socios : [],
+    mentores_conselho: Array.isArray(data.mentores_conselho) ?
+      data.mentores_conselho :
+      [],
+    perguntas_respostas: Array.isArray(data.perguntas_respostas) ?
+      data.perguntas_respostas :
+      [],
+    criado_em: (data.criado_em as string) || null,
+    atualizado_em: (data.atualizado_em as string) || null,
+  };
+}

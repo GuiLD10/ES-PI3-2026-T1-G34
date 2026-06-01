@@ -5,8 +5,10 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_routes.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/startup_service.dart';
 import '../../models/startup_model.dart';
+import '../../widgets/saldo_display.dart';
 import '../../widgets/startup_card.dart';
 
 class CatalogScreen extends StatefulWidget {
@@ -25,18 +27,23 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   final Map<String, bool> _filtros = {
     'Nova': false,
-    'Em operacao': false,
-    'Em expansao': false,
+    'Em operação': false,
+    'Em expansão': false,
   };
 
   String _busca = '';
 
-  // Índice da aba selecionada na navbar: 0 = Catálogo, 1 = Carteira, 2 = Configurações
-  int _navIndex = 0;
-
   @override
   void initState() {
     super.initState();
+    if (!AuthService.isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, AppRoutes.login);
+      });
+      return;
+    }
+
     _carregarStartups();
   }
 
@@ -54,7 +61,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
     try {
       final startups = await StartupService.listarStartups();
-
       if (!mounted) return;
       setState(() {
         _todasStartups = startups;
@@ -76,15 +82,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
   }
 
   void _onNavTap(int index) {
-    if (index == _navIndex) return;
-    setState(() => _navIndex = index);
-
     switch (index) {
-      case 1:
-        Navigator.pushNamed(context, AppRoutes.wallet);
+      case 0:
         break;
-      case 2:
-        Navigator.pushNamed(context, AppRoutes.settings);
+      case 1:
+        Navigator.pushReplacementNamed(context, AppRoutes.wallet);
         break;
     }
   }
@@ -132,6 +134,29 @@ class _CatalogScreenState extends State<CatalogScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
+        onTap: _onNavTap,
+        backgroundColor: Colors.white,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textHint,
+        selectedLabelStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: const TextStyle(fontSize: 12),
+        elevation: 8,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.grid_view_rounded),
+            label: 'Catálogo',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_rounded),
+            label: 'Carteira',
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,35 +191,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
           ],
         ),
       ),
-
-      // Navbar inferior
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _navIndex,
-        onTap: _onNavTap,
-        backgroundColor: Colors.white,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textHint,
-        selectedLabelStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: const TextStyle(fontSize: 12),
-        elevation: 8,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_rounded),
-            label: 'Catálogo',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_rounded),
-            label: 'Carteira',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_rounded),
-            label: 'Configurações',
-          ),
-        ],
-      ),
     );
   }
 
@@ -209,14 +205,25 @@ class _CatalogScreenState extends State<CatalogScreen> {
             width: 100,
             fit: BoxFit.contain,
           ),
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: Colors.white,
-            child: Icon(
-              Icons.person,
-              color: AppColors.primary,
-              size: 20,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SaldoDisplay(),
+              const SizedBox(width: 12),
+              // Avatar navega para configurações
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white,
+                  child: Icon(
+                    Icons.person,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -225,7 +232,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   Widget _buildSaudacao() {
     return Text(
-      'Bem-vindo, usuario',
+      'Bem-vindo, usuário',
       style: TextStyle(
         color: AppColors.textPrimary,
         fontSize: 16,
@@ -270,7 +277,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Filtro por estagio:',
+          'Filtro por estágio:',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 13,
@@ -389,7 +396,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
     if (_startupsFiltradas.isEmpty) {
       final mensagem = _todasStartups.isEmpty
-          ? 'Nenhuma startup disponivel.'
+          ? 'Nenhuma startup disponível.'
           : 'Nenhuma startup encontrada para os filtros selecionados.';
 
       return Padding(
