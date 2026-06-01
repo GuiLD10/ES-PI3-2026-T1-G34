@@ -1,0 +1,8 @@
+// Autor: Henrique Soares Cunha
+// RA: 23013359
+// Descrição: index functions
+
+export * as authentication from "./auth";
+export * as exchange from "./exchange";
+export * as startups from "./startups";
+export * as wallet from "./wallet";

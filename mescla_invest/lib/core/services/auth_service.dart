@@ -1,46 +1,32 @@
 // Autor: Guilherme Lange Dallora
 // RA: 23012353
-// Descrição: Serviço de autenticação que se comunica com o servidor Node.js
+// Descricao: Servico de autenticacao que se comunica com Firebase Functions
 
+import 'dart:async';
 import 'dart:convert';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
+import 'session_manager.dart';
+
 class AuthService {
-  // URL base do servidor Node.js
-  // Em emulador Android: 10.0.2.2 aponta para o localhost da máquina host
-  // Em dispositivo físico: use o IP da sua máquina na rede local (ex: 192.168.x.x)
-  // Em web/Windows: use localhost
+  static const String _functionsBaseUrl = String.fromEnvironment(
+    'FUNCTIONS_BASE_URL',
+    defaultValue: 'http://localhost:5001/mesclainvest-d3745/us-central1',
+  );
 
-  // Para rodar no emulador Android
-  // static const String _baseUrl = 'http://10.0.2.2:3000';
-
-  // Para rodar no Windows ou Chrome
-  static const String _baseUrl = 'http://localhost:3000';
-  static String? _token;
   static String? _uid;
+  static String? _token;
+  static Map<String, dynamic>? _pendingMfaSession;
+  static bool _pendingMfaPersistir = false;
 
-  static String? get token => _token;
-  static String? get uid => _uid;
-  static bool get estaAutenticado => _token != null && _token!.isNotEmpty;
-
-  static Map<String, String> headersAutenticados() {
-    final tokenAtual = _token;
-
-    if (tokenAtual == null || tokenAtual.isEmpty) {
-      throw const AuthServiceException('Usuario nao autenticado.');
-    }
-
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $tokenAtual',
-    };
+  static String? get currentUid => _uid ?? SessionManager.uid;
+  static bool get isAuthenticated {
+    final token = _token ?? SessionManager.token;
+    return token != null && token.isNotEmpty;
   }
 
-  /// Realiza o cadastro de um novo usuário.
-  /// Retorna um mapa com:
-  ///   - `success` (bool)
-  ///   - `message` (String) — mensagem de sucesso ou erro
-  ///   - `field` (String?) — nome do campo inválido (apenas em caso de erro de validação)
   static Future<Map<String, dynamic>> cadastrar({
     required String nome,
     required String email,
@@ -49,106 +35,299 @@ class AuthService {
     required String senha,
     required String confirmarSenha,
   }) async {
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$_baseUrl/auth/register'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'nome': nome,
-              'email': email,
-              'cpf': cpf,
-              'telefone': telefone,
-              'senha': senha,
-              'confirmarSenha': confirmarSenha,
-            }),
-          )
-          .timeout(const Duration(seconds: 15));
+    final response = await _postJson('authentication-registerUser', {
+      'nome': nome,
+      'email': email,
+      'cpf': cpf,
+      'telefone': telefone,
+      'senha': senha,
+      'confirmarSenha': confirmarSenha,
+    });
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      if (data['success'] == true) {
-        final loginData = await login(email: email, senha: senha);
-        if (loginData['success'] == true) {
-          data['uid'] = loginData['uid'];
-          data['token'] = loginData['token'];
-        }
-      }
-      return data;
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Erro de conexão. Verifique se o servidor está rodando.',
-      };
+    if (response['success'] == true) {
+      await _storeSession(response);
     }
+
+    return response;
   }
 
-  /// Realiza o login de um usuário existente.
-  /// Retorna um mapa com:
-  ///   - `success` (bool)
-  ///   - `message` (String) — mensagem de sucesso ou erro
   static Future<Map<String, dynamic>> login({
     required String email,
     required String senha,
+    bool continuarConectado = false,
   }) async {
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$_baseUrl/auth/login'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'email': email, 'senha': senha}),
-          )
-          .timeout(const Duration(seconds: 15));
+    final response = await _postJson('authentication-loginUser', {
+      'email': email,
+      'senha': senha,
+    });
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      if (data['success'] == true) {
-        _armazenarSessao(data);
+    if (response['success'] == true) {
+      if (response['requiresMfa'] == true) {
+        _pendingMfaSession = Map<String, dynamic>.from(response);
+        _pendingMfaPersistir = continuarConectado;
+        _clearMemorySession();
+        await SessionManager.limparSessaoPersistente();
+      } else {
+        await _storeSession(response, persistir: continuarConectado);
       }
-      return data;
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'Erro de conexão. Verifique se o servidor está rodando.',
-      };
     }
+
+    return response;
   }
 
-  /// Envia e-mail de recuperação de senha.
-  /// O servidor verifica se o e-mail existe no Firebase antes de enviar.
-  /// Retorna um mapa com:
-  ///   - `success` (bool)
-  ///   - `message` (String) — mensagem de sucesso ou erro
+  static Future<bool> restaurarSessao() async {
+    final refreshToken = await _carregarRefreshTokenPersistente();
+
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return false;
+    }
+
+    final response = await _postJson('authentication-refreshSession', {
+      'refreshToken': refreshToken,
+    });
+
+    if (response['success'] != true) {
+      await clearSession();
+      return false;
+    }
+
+    await _storeSession(response, persistir: true);
+    return isAuthenticated;
+  }
+
   static Future<Map<String, dynamic>> recuperarSenha({
     required String email,
   }) async {
+    return _postJson('authentication-sendPasswordReset', {'email': email});
+  }
+
+  static Future<String> iniciarVerificacaoTelefone(String telefone) async {
+    final completer = Completer<String>();
+
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: telefone,
+      timeout: const Duration(seconds: 60),
+      verificationCompleted: (PhoneAuthCredential credential) async {},
+      verificationFailed: (FirebaseAuthException e) {
+        if (!completer.isCompleted) {
+          completer.completeError(
+            AuthServiceException(
+              e.message ?? 'Erro ao enviar SMS de verificacao.',
+            ),
+          );
+        }
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        if (!completer.isCompleted) {
+          completer.complete(verificationId);
+        }
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {},
+    );
+
+    return completer.future;
+  }
+
+  static Future<bool> confirmarCodigoOTP({
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        await currentUser.linkWithCredential(credential);
+      } else {
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      }
+
+      return true;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'invalid-verification-code') {
+        throw const AuthServiceException('Codigo de verificacao invalido.');
+      }
+      if (e.code == 'credential-already-in-use') {
+        throw const AuthServiceException(
+          'Este telefone ja esta vinculado a outra conta.',
+        );
+      }
+      throw AuthServiceException(e.message ?? 'Erro ao verificar codigo.');
+    }
+  }
+
+  static Future<bool> verificarCodigoMfaLogin({
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final pendingSession = _pendingMfaSession;
+      if (pendingSession == null) {
+        throw const AuthServiceException(
+          'Sessao MFA expirada. Faca login novamente.',
+        );
+      }
+
+      await _storeSession(pendingSession, persistir: _pendingMfaPersistir);
+      _clearPendingMfaSession();
+      return true;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'invalid-verification-code') {
+        throw const AuthServiceException('Codigo de verificacao invalido.');
+      }
+      throw AuthServiceException(e.message ?? 'Erro ao verificar codigo.');
+    }
+  }
+
+  static Future<Map<String, dynamic>> toggleMfa({required bool ativar}) async {
+    if (!isAuthenticated) {
+      return {'success': false, 'message': 'Usuario nao autenticado.'};
+    }
+
+    final response = await _postJson(
+      'authentication-toggleMfa',
+      {'ativar': ativar},
+      autenticado: true,
+    );
+
+    if (response['success'] == true) {
+      SessionManager.setMfaAtivo(ativar);
+    }
+
+    return response;
+  }
+
+  static bool get isMfaAtivo => SessionManager.mfaAtivo;
+
+  static Map<String, String> headersAutenticados() {
+    final token = _token ?? SessionManager.token;
+
+    if (token == null || token.isEmpty) {
+      throw const AuthServiceException('Usuario nao autenticado.');
+    }
+
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  static Future<void> clearSession() async {
+    _clearPendingMfaSession();
+    _clearMemorySession();
+    await SessionManager.limparSessaoPersistente();
+  }
+
+  static Future<Map<String, dynamic>> _postJson(
+    String functionName,
+    Map<String, dynamic> body, {
+    bool autenticado = false,
+  }) async {
     try {
       final response = await http
           .post(
-            Uri.parse('$_baseUrl/auth/forgot-password'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'email': email}),
+            Uri.parse('$_functionsBaseUrl/$functionName'),
+            headers: autenticado
+                ? headersAutenticados()
+                : {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 15));
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      return data;
-    } catch (e) {
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! Map) {
+        return {
+          'success': false,
+          'message': 'Resposta invalida das Functions.',
+        };
+      }
+
+      return Map<String, dynamic>.from(decoded);
+    } on AuthServiceException catch (e) {
       return {
         'success': false,
-        'message': 'Erro de conexão. Verifique se o servidor está rodando.',
+        'message': e.message,
+      };
+    } catch (_) {
+      return {
+        'success': false,
+        'message':
+            'Erro de conexao. Verifique se o emulador das Functions esta rodando.',
       };
     }
   }
 
-  static void _armazenarSessao(Map<String, dynamic> data) {
-    final tokenRecebido = data['token']?.toString();
-    final uidRecebido = data['uid']?.toString();
+  static Future<void> _storeSession(
+    Map<String, dynamic> response, {
+    bool persistir = false,
+  }) async {
+    final uid = response['uid']?.toString().trim();
+    final token = response['token']?.toString().trim();
+    final refreshToken = response['refreshToken']?.toString().trim();
+    final name = response['name']?.toString().trim();
+    final telefone = response['telefone']?.toString().trim();
+    final mfaAtivo = response['requiresMfa'] == true;
 
-    if (tokenRecebido != null && tokenRecebido.isNotEmpty) {
-      _token = tokenRecebido;
+    if (uid == null ||
+        uid.isEmpty ||
+        token == null ||
+        token.isEmpty ||
+        name == null ||
+        name.isEmpty) {
+      return;
     }
-    if (uidRecebido != null && uidRecebido.isNotEmpty) {
-      _uid = uidRecebido;
+
+    _uid = uid;
+    _token = token;
+    await SessionManager.salvarSessao(
+      uid: uid,
+      token: token,
+      name: name,
+      telefone: telefone ?? '',
+      refreshToken: refreshToken,
+      mfaAtivo: mfaAtivo,
+      persistir: persistir,
+    );
+  }
+
+  static Future<String?> _carregarRefreshTokenPersistente() async {
+    try {
+      return await SessionManager.carregarRefreshTokenPersistente();
+    } catch (_) {
+      return null;
     }
+  }
+
+  static void _clearMemorySession() {
+    _uid = null;
+    _token = null;
+    SessionManager.limparSessao();
+  }
+
+  static void _clearPendingMfaSession() {
+    _pendingMfaSession = null;
+    _pendingMfaPersistir = false;
+  }
+
+  static String? getTelefoneUsuario() {
+    final telefone = SessionManager.telefone;
+
+    if (telefone == null || telefone.trim().isEmpty) {
+      return null;
+    }
+
+    return telefone;
   }
 }
 
@@ -162,4 +341,3 @@ class AuthServiceException implements Exception {
     return message;
   }
 }
-

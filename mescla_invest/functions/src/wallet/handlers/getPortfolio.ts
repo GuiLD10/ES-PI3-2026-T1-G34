@@ -1,0 +1,79 @@
+// Autor: Artur Henrique Pagno
+// RA: 21013037
+// Descricao: Handler para buscar portfolio do usuario
+// com ativos e historico de precos.
+
+import {onRequest} from "firebase-functions/v2/https";
+import {authenticateRequest, AuthRequestError} from "../../shared/auth";
+import {handleCorsPreflight, sendJson} from "../../shared/http";
+import {db} from "../../shared/firebase";
+import {getStartupMarketPrices} from "../../shared/startupPricing";
+import {
+  findAtivosByUid,
+  findTransacoesByStartupId,
+} from "../repositories/walletRepository";
+import type {PortfolioAtivoResponse} from "../types/walletTypes";
+
+export const getPortfolio = onRequest(async (req, res) => {
+  if (handleCorsPreflight(req, res)) {
+    return;
+  }
+
+  if (req.method !== "GET") {
+    return sendJson(res, 405, {
+      success: false,
+      message: "Metodo nao permitido.",
+    });
+  }
+
+  try {
+    const user = await authenticateRequest(req);
+    const ativos = await findAtivosByUid(user.uid);
+
+    const portfolio: PortfolioAtivoResponse[] = await Promise.all(
+      ativos.map(async (ativo) => {
+        const [startupDoc, historicoPrecos] = await Promise.all([
+          db.collection("startups").doc(ativo.startup_id).get(),
+          findTransacoesByStartupId(ativo.startup_id),
+        ]);
+
+        const startupData = startupDoc.data() ?? {};
+        const prices = getStartupMarketPrices(startupData, {
+          hasTransactions: historicoPrecos.length > 0,
+        });
+
+        return {
+          startup_id: ativo.startup_id,
+          startup_nome: String(startupData.nome ?? ""),
+          quantidade_disponivel: ativo.quantidade_disponivel,
+          quantidade_bloqueada: ativo.quantidade_bloqueada,
+          valor_medio_centavos: ativo.valor_medio_centavos,
+          valor_medio_preciso_centavos: ativo.valor_medio_preciso_centavos,
+          preco_atual_centavos: prices.currentPriceCents,
+          preco_primario_centavos: prices.primaryPriceCents,
+          preco_atual_preciso_centavos: prices.currentPricePreciseCents,
+          preco_primario_preciso_centavos: prices.primaryPricePreciseCents,
+          historico_precos: historicoPrecos,
+        };
+      }),
+    );
+
+    return sendJson(res, 200, {
+      success: true,
+      data: {ativos: portfolio},
+    });
+  } catch (error: unknown) {
+    if (error instanceof AuthRequestError) {
+      return sendJson(res, error.statusCode, {
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("Erro ao buscar portfolio:", error);
+    return sendJson(res, 500, {
+      success: false,
+      message: "Erro interno ao buscar portfolio.",
+    });
+  }
+});

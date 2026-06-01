@@ -3,7 +3,6 @@
 // Descrição: Tela de Recuperação de Senha do MesclaInvest
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/services/auth_service.dart';
 
@@ -16,14 +15,12 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
-  // final _cpfController = TextEditingController(); // CPF desativado temporariamente
 
   bool _isLoading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
-    // _cpfController.dispose(); // CPF desativado temporariamente
     super.dispose();
   }
 
@@ -41,7 +38,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (resultado['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(resultado['message'] ?? 'Instruções enviadas para o e-mail cadastrado.'),
+          content: Text(
+            resultado['message'] ??
+                'Instruções enviadas para o e-mail cadastrado.',
+          ),
           backgroundColor: AppColors.primary,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -50,7 +50,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(resultado['message'] ?? 'Erro ao enviar e-mail. Tente novamente.'),
+          content: Text(
+            resultado['message'] ?? 'Erro ao enviar e-mail. Tente novamente.',
+          ),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -101,29 +103,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Campo E-mail
                     _buildTextField(
                       controller: _emailController,
                       hint: 'E-mail',
                       keyboardType: TextInputType.emailAddress,
                     ),
-
-                    // Campo CPF desativado temporariamente
-                    // const SizedBox(height: 10),
-                    // _buildTextField(
-                    //   controller: _cpfController,
-                    //   hint: 'CPF',
-                    //   keyboardType: TextInputType.number,
-                    //   inputFormatters: [
-                    //     FilteringTextInputFormatter.digitsOnly,
-                    //     LengthLimitingTextInputFormatter(11),
-                    //     _CpfInputFormatter(),
-                    //   ],
-                    // ),
-
                     const SizedBox(height: 32),
 
-                    // Botão Recuperar centralizado
                     Center(
                       child: SizedBox(
                         width: 160,
@@ -133,7 +119,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
-                            disabledBackgroundColor: AppColors.primary.withOpacity(0.7),
+                            disabledBackgroundColor: AppColors.primary
+                                .withValues(alpha: 0.7),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -161,7 +148,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Voltar para login
                     Center(
                       child: GestureDetector(
                         onTap: () => Navigator.pop(context),
@@ -189,20 +175,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     required TextEditingController controller,
     required String hint,
     TextInputType keyboardType = TextInputType.text,
-    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
       style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
         filled: true,
         fillColor: Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
@@ -219,23 +205,3 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 }
-
-// Formatador de CPF: 000.000.000-00 — desativado temporariamente
-// class _CpfInputFormatter extends TextInputFormatter {
-//   @override
-//   TextEditingValue formatEditUpdate(
-//       TextEditingValue oldValue, TextEditingValue newValue) {
-//     final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-//     final buffer = StringBuffer();
-//     for (int i = 0; i < digits.length && i < 11; i++) {
-//       if (i == 3 || i == 6) buffer.write('.');
-//       if (i == 9) buffer.write('-');
-//       buffer.write(digits[i]);
-//     }
-//     final text = buffer.toString();
-//     return newValue.copyWith(
-//       text: text,
-//       selection: TextSelection.collapsed(offset: text.length),
-//     );
-//   }
-// }
