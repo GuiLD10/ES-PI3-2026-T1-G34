@@ -7,6 +7,7 @@ import {authenticateRequest, AuthRequestError} from "../../shared/auth";
 import {handleCorsPreflight, sendJson} from "../../shared/http";
 import {FieldValue} from "firebase-admin/firestore";
 import {findStartupRef} from "../repositories/startupRepository";
+import {db} from "../../shared/firebase";
 
 export const createStartupQuestion = onRequest(async (req, res) => {
   if (handleCorsPreflight(req, res)) {
@@ -65,6 +66,26 @@ export const createStartupQuestion = onRequest(async (req, res) => {
         success: false,
         message: "Startup não encontrada.",
       });
+    }
+
+    // Validação de investidor para perguntas privadas
+    if (questionType === "privada") {
+      const ativoDoc = await db
+        .collection("usuarios")
+        .doc(user.uid)
+        .collection("ativos")
+        .doc(startupId)
+        .get();
+
+      const quantidade = Number(ativoDoc.data()?.quantidade_disponivel ?? 0);
+
+      if (!ativoDoc.exists || quantidade <= 0) {
+        return sendJson(res, 403, {
+          success: false,
+          message:
+            "Apenas investidores com posição ativa podem fazer perguntas privadas.",
+        });
+      }
     }
 
     // Estrutura da pergunta
