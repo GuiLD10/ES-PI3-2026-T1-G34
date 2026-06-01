@@ -3,6 +3,7 @@
 // Descricao: Tela de detalhes de uma startup do MesclaInvest
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/session_manager.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_routes.dart';
@@ -412,12 +413,34 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
           const SizedBox(height: 12),
           _buildSecao(
             titulo: 'Vídeo demonstrativo',
-            child: Text(
-              startup.videoDemo,
-              style: TextStyle(
-                color: AppColors.primary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+            child: GestureDetector(
+              onTap: () async {
+                final url = Uri.tryParse(startup.videoDemo);
+                if (url != null && await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
+              },
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      startup.videoDemo,
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.open_in_new,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
+                ],
               ),
             ),
           ),

@@ -41,6 +41,7 @@ dependencies:
   firebase_core: ^4.9.0
   fl_chart: ^0.70.2
   flutter_secure_storage: ^10.3.1
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
