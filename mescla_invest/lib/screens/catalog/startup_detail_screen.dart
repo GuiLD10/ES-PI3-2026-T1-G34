@@ -416,8 +416,12 @@ class _StartupDetailScreenState extends State<StartupDetailScreen> {
             child: GestureDetector(
               onTap: () async {
                 final url = Uri.tryParse(startup.videoDemo);
-                if (url != null && await canLaunchUrl(url)) {
-                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                if (url != null) {
+                  try {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  } catch (_) {
+                    // URL inválida ou não pode ser aberta
+                  }
                 }
               },
               child: Row(
